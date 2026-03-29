@@ -25,6 +25,8 @@ interface SettlementData {
   endEvents: GameEvent[];
 }
 
+interface CompletedItem { key: string; paragraphs: string[] }
+
 /* ── Component ──────────────────────────────────────────────── */
 
 export function SettlementPhase() {
@@ -70,12 +72,24 @@ export function SettlementPhase() {
     return { kind: 'done' };
   });
 
-  // Auto-advance when nothing to show
+  /* ── Accumulated log ──────────────────────────────────────── */
+
+  const [completedItems, setCompletedItems] = useState<CompletedItem[]>([]);
+  const logEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [completedItems]);
+
+  // Auto-advance when all log items are done; 600ms delay so user sees final state
+  const hasLogItems = taskReports.length + endEvents.length > 0;
   useEffect(() => {
     if (step.kind === 'done') {
-      advancePhase();
+      const delay = hasLogItems ? 600 : 0;
+      const id = setTimeout(() => advancePhase(), delay);
+      return () => clearTimeout(id);
     }
-  }, [step, advancePhase]);
+  }, [step, advancePhase, hasLogItems]);
 
   /* ── Transition to assassin check or advance ──────────────── */
 
@@ -96,6 +110,9 @@ export function SettlementPhase() {
     if (step.kind === 'taskReport') {
       const report = taskReports[step.index];
 
+      // Accumulate current item into log
+      setCompletedItems(prev => [...prev, { key: `task-${report.followerId}-${step.index}`, paragraphs: [report.narrative] }]);
+
       // Apply deltas
       applyStatsDelta(report.statsDelta);
       if (report.attrsDelta) applyAttrsDelta(report.attrsDelta);
@@ -112,6 +129,9 @@ export function SettlementPhase() {
       }
     } else if (step.kind === 'endEvents') {
       const event = endEvents[step.eventIndex];
+
+      // Accumulate current item into log
+      setCompletedItems(prev => [...prev, { key: `end-${event.id}-${step.eventIndex}`, paragraphs: event.narrative }]);
 
       // Apply deltas
       if (event.statsDelta) applyStatsDelta(event.statsDelta);
@@ -151,9 +171,7 @@ export function SettlementPhase() {
 
   /* ── Render ───────────────────────────────────────────────── */
 
-  if (step.kind === 'done') return null;
-
-  // Assassin narrative
+  // Assassin narrative (full-screen, hides accumulated log)
   if (step.kind === 'assassinNarrative') {
     const narrative =
       step.assassinType === 'assassin_chen'
@@ -212,30 +230,85 @@ export function SettlementPhase() {
   }
 
   // Determine current display content
-  let displayKey: string;
-  let paragraphs: string[];
+  let currentKey: string;
+  let currentParagraphs: string[];
 
   if (step.kind === 'taskReport') {
     const report = taskReports[step.index];
-    displayKey = `task-${report.followerId}-${step.index}`;
-    paragraphs = [report.narrative];
-  } else {
+    currentKey = `task-${report.followerId}-${step.index}`;
+    currentParagraphs = [report.narrative];
+  } else if (step.kind === 'endEvents') {
     const event = endEvents[step.eventIndex];
-    displayKey = `end-${event.id}-${step.eventIndex}`;
-    paragraphs = event.narrative;
+    currentKey = `end-${event.id}-${step.eventIndex}`;
+    currentParagraphs = event.narrative;
+  } else {
+    // step.kind === 'done' — show accumulated log, waiting for 600ms timer
+    return completedItems.length === 0 ? null : (
+      <SettlementLog completedItems={completedItems} />
+    );
   }
 
   return (
     <div className="w-full max-w-md mx-auto py-4">
-      <h2 className="font-serif text-xl text-stone-700 text-center mb-6 tracking-widest">
+      <h2 className="font-serif text-xl text-stone-700 text-center mb-4 tracking-widest">
         旬末结算
       </h2>
 
-      <EventDisplay
-        key={displayKey}
-        paragraphs={paragraphs}
-        onDone={handleStepDone}
-      />
+      <div className="max-h-[55vh] overflow-y-auto">
+        {/* Previously completed items (announced to screen readers as they appear) */}
+        <div aria-live="polite">
+          <CompletedItemList items={completedItems} />
+        </div>
+
+        {/* Current item being typed */}
+        <EventDisplay
+          key={currentKey}
+          paragraphs={currentParagraphs}
+          onDone={handleStepDone}
+        />
+
+        {/* Scroll anchor — keeps the active EventDisplay in view */}
+        <div ref={logEndRef} />
+      </div>
+    </div>
+  );
+}
+
+/* ── Shared completed-items renderer ─────────────────────── */
+
+function CompletedItemList({ items }: { items: CompletedItem[] }) {
+  return (
+    <>
+      {items.map(item => (
+        <div key={item.key} className="mb-4">
+          {item.paragraphs.map((p, i) => (
+            <p key={i} className="font-serif text-lg leading-9 text-stone-800">{p}</p>
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
+
+/* ── Static log display (used when step is done, 600ms hold) ─ */
+
+function SettlementLog({ completedItems }: { completedItems: CompletedItem[] }) {
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to bottom on mount so the last item is visible
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  return (
+    <div className="w-full max-w-md mx-auto py-4">
+      <h2 className="font-serif text-xl text-stone-700 text-center mb-4 tracking-widest">
+        旬末结算
+      </h2>
+      <div className="max-h-[55vh] overflow-y-auto">
+        <CompletedItemList items={completedItems} />
+        <div ref={bottomRef} />
+      </div>
     </div>
   );
 }

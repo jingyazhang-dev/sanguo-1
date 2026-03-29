@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLevel1Store } from '../../store/level1Store';
 import { StatsPanel } from './StatsPanel';
-import { RoundHeader } from './RoundHeader';
 import { Level1Cover } from './Level1Cover';
 import { StartEventsPhase } from './StartEventsPhase';
 import { OpeningScriptPhase } from './OpeningScriptPhase';
@@ -66,10 +65,7 @@ export function Level1Screen() {
 
   return (
     <div className="h-full flex flex-col bg-[#faf8f5] font-serif text-stone-800 overflow-hidden">
-      {/* Round info bar */}
-      <RoundHeader />
-
-      {/* Stats bar */}
+      {/* Stats bar (includes round info) */}
       <StatsPanel />
 
       {/* Main content pane */}

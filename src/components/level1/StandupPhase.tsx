@@ -52,6 +52,7 @@ export function StandupPhase() {
 
   const [assignments, setAssignments] = useState<StandupAssignments>(proposals);
   const [step, setStep] = useState<Step>({ kind: 'intro' });
+  const [introDone, setIntroDone] = useState(false);
   const [completedLines, setCompletedLines] = useState<CompletedLine[]>([]);
   const activeRef = useRef<HTMLDivElement>(null);
 
@@ -66,6 +67,7 @@ export function StandupPhase() {
   /* ── Handlers ───────────────────────────────────────────── */
 
   const handleIntroDone = useCallback(() => {
+    setIntroDone(true);
     if (activeFollowers.length === 0) {
       setStep({ kind: 'summary' });
       return;
@@ -131,7 +133,7 @@ export function StandupPhase() {
 
   /* ── Render ─────────────────────────────────────────────── */
 
-  // Step 1: Intro narration
+  // Step 1: Intro narration (only shown while intro is still playing)
   if (step.kind === 'intro') {
     return (
       <div className="w-full max-w-xl mx-auto py-4">
@@ -154,6 +156,13 @@ export function StandupPhase() {
 
     return (
       <div className="w-full max-w-xl mx-auto py-4">
+        {/* Persisted intro narration */}
+        {introDone && (
+          <p className="mb-5 font-serif text-lg leading-9 whitespace-pre-wrap break-words last:mb-0">
+            {STANDUP_INTRO}
+          </p>
+        )}
+
         {/* Accumulated completed assignments */}
         {completedLines.length > 0 && (
           <div className="mb-4 space-y-1">
