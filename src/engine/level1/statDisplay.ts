@@ -18,27 +18,26 @@ const LEVEL_COLORS: readonly string[] = [
 
 /* ── Thresholds per stat type ─────────────────────────────── */
 
-/** For 0–100 percentage stats: morale, combatPower, support, morality, talent */
+/** For 0–100 percentage stats: reputation, training, equipment, support */
 const PERCENT_THRESHOLDS = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90] as const;
 
-/** Military headcount: ~200–2000 expected range */
-const MILITARY_THRESHOLDS = [0, 200, 350, 500, 700, 900, 1100, 1400, 1700, 2000] as const;
+/** Military headcount: scaled for ~0–20000+ range */
+const MILITARY_THRESHOLDS = [0, 2000, 3500, 5000, 7000, 9000, 11000, 14000, 17000, 20000] as const;
 
 /** Ration days of supply: 0–120 expected range */
 const RATIONS_THRESHOLDS = [0, 5, 10, 15, 25, 35, 50, 70, 90, 110] as const;
 
-/** Treasury funds: ~0–10000 expected range */
-const FUNDS_THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2500, 4000, 6000, 8000] as const;
+/** Treasury gold: scaled for ~0–100000+ range */
+const GOLD_THRESHOLDS = [0, 1000, 2000, 4000, 6000, 10000, 15000, 20000, 50000, 100000] as const;
 
 const THRESHOLDS: Record<StatIdiomKey, readonly number[]> = {
-  morale:      PERCENT_THRESHOLDS,
-  combatPower: PERCENT_THRESHOLDS,
-  support:     PERCENT_THRESHOLDS,
-  morality:    PERCENT_THRESHOLDS,
-  talent:      PERCENT_THRESHOLDS,
-  military:    MILITARY_THRESHOLDS,
-  rations:     RATIONS_THRESHOLDS,
-  funds:       FUNDS_THRESHOLDS,
+  reputation: PERCENT_THRESHOLDS,
+  training:  PERCENT_THRESHOLDS,
+  equipment: PERCENT_THRESHOLDS,
+  support:   PERCENT_THRESHOLDS,
+  military:  MILITARY_THRESHOLDS,
+  rations:   RATIONS_THRESHOLDS,
+  gold:      GOLD_THRESHOLDS,
 };
 
 /* ── Core function ────────────────────────────────────────── */
@@ -79,12 +78,11 @@ export function getStatDisplay(key: StatIdiomKey, value: number): StatDisplay {
 /* ── Full stat label mapping ──────────────────────────────── */
 
 export const STAT_LABELS: Record<StatIdiomKey, string> = {
-  morale:      '士气',
-  combatPower: '战力',
-  support:     '民心',
-  morality:    '德行',
-  talent:      '才学',
-  military:    '兵力',
-  rations:     '粮草',
-  funds:       '钱粮',
+  reputation: '声望',
+  training:  '操练',
+  equipment: '装备',
+  support:   '民心',
+  military:  '兵力',
+  rations:   '粮草',
+  gold:      '金',
 };

@@ -24,7 +24,7 @@ function guanyuTopics(): DialogueTopic[] {
         '关羽凝视远处挥汗如雨的兵卒，缓缓道："训练之苦，远不及沙场丧命之痛。今日多流一滴汗，明日便少流一滴血——切不可懈怠。"',
         '关羽抚着青龙偃月刀的刀背，微微颔首："某今日亲授了几套刀法于士卒，虽是粗浅招式，假以时日勤加磨砺，必成可用之兵。"',
       ],
-      statsDelta: { morale: 2 },
+      statsDelta: {},
     },
     {
       id: 'guanyu-loyalty',
@@ -60,7 +60,7 @@ function zhangfeiTopics(): DialogueTopic[] {
         '张飞使劲拍了拍怀中的酒坛子，发出咚咚闷响："嘿！今日操练甚好，弟兄们都卖了力气——当浮一大白！"',
         '张飞端起粗碗仰头一饮而尽，酒液顺着胡须淌下，浑然不觉："痛快！人生在世不称意，不如饮酒尽余欢！"',
       ],
-      statsDelta: { morale: 3 },
+      statsDelta: {},
     },
     {
       id: 'zhangfei-brotherhood',

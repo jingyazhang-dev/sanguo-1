@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useLevel1Store } from '../../store/level1Store';
-import { combatPower } from '../../types/level1Types';
 import { getStatDisplay, STAT_LABELS } from '../../engine/level1/statDisplay';
 import type { StatIdiomKey } from '../../engine/level1/statIdioms';
 import type { RoundPhase, StatsDelta } from '../../types/level1Types';
@@ -38,8 +37,7 @@ export function StatsPanel() {
   const pendingStatsDelta = useLevel1Store((s) => s.pendingStatsDelta);
   const pendingStatsDeltaKey = useLevel1Store((s) => s.pendingStatsDeltaKey);
 
-  const { publicOpinion, territory } = stats;
-  const cp = combatPower(territory);
+  const { territory } = stats;
   const rationDays =
     territory.military > 0
       ? Math.floor(territory.rations / territory.military)
@@ -49,15 +47,13 @@ export function StatsPanel() {
     if (!pendingStatsDelta) return new Set<string>();
     const d: StatsDelta = pendingStatsDelta;
     const keys = new Set<string>();
-    if (d.military  !== undefined && d.military  !== 0) keys.add('military');
-    if (d.rations   !== undefined && d.rations   !== 0) keys.add('rations');
-    if (d.funds     !== undefined && d.funds     !== 0) keys.add('funds');
-    if (d.morale    !== undefined && d.morale    !== 0) keys.add('morale');
-    if (d.support   !== undefined && d.support   !== 0) keys.add('support');
-    if (d.morality  !== undefined && d.morality  !== 0) keys.add('morality');
-    if (d.talent    !== undefined && d.talent    !== 0) keys.add('talent');
-    if ((d.training !== undefined && d.training  !== 0) ||
-        (d.equipment !== undefined && d.equipment !== 0)) keys.add('combatPower');
+    if (d.reputation !== undefined && d.reputation !== 0) keys.add('reputation');
+    if (d.military   !== undefined && d.military   !== 0) keys.add('military');
+    if (d.rations    !== undefined && d.rations    !== 0) keys.add('rations');
+    if (d.gold       !== undefined && d.gold       !== 0) keys.add('gold');
+    if (d.support    !== undefined && d.support    !== 0) keys.add('support');
+    if (d.training   !== undefined && d.training   !== 0) keys.add('training');
+    if (d.equipment  !== undefined && d.equipment  !== 0) keys.add('equipment');
     return keys;
   }, [pendingStatsDelta]);
 
@@ -72,8 +68,17 @@ export function StatsPanel() {
         </p>
         <p className="text-xs text-stone-400">{PHASE_LABELS[phase]}</p>
       </div>
-      {/* Stats grid: 3 columns */}
-      <div className="grid grid-cols-3 gap-x-2 gap-y-0.5 text-xs max-w-2xl mx-auto">
+      {/* Reputation — full-width featured row */}
+      <div className="text-xs max-w-2xl mx-auto mb-1 text-center">
+        <StatIdiomPair
+          key={highlightedKeys.has('reputation') ? `reputation-${pendingStatsDeltaKey}` : 'reputation'}
+          statKey="reputation" value={stats.reputation}
+          highlighted={highlightedKeys.has('reputation')}
+          featured
+        />
+      </div>
+      {/* Stats grid: 2 columns — resources | military condition */}
+      <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs max-w-2xl mx-auto">
         {/* Column 1: numbered resource stats */}
         <div className="space-y-0.5">
           <StatNumberPair
@@ -87,22 +92,22 @@ export function StatsPanel() {
             highlighted={highlightedKeys.has('rations')}
           />
           <StatNumberPair
-            key={highlightedKeys.has('funds') ? `funds-${pendingStatsDeltaKey}` : 'funds'}
-            statKey="funds" value={territory.funds}
-            highlighted={highlightedKeys.has('funds')}
+            key={highlightedKeys.has('gold') ? `gold-${pendingStatsDeltaKey}` : 'gold'}
+            statKey="gold" value={territory.gold}
+            highlighted={highlightedKeys.has('gold')}
           />
         </div>
-        {/* Column 2: combat-related idiom stats */}
+        {/* Column 2: military condition idiom stats */}
         <div className="space-y-0.5">
           <StatIdiomPair
-            key={highlightedKeys.has('combatPower') ? `combatPower-${pendingStatsDeltaKey}` : 'combatPower'}
-            statKey="combatPower" value={cp}
-            highlighted={highlightedKeys.has('combatPower')}
+            key={highlightedKeys.has('training') ? `training-${pendingStatsDeltaKey}` : 'training'}
+            statKey="training" value={territory.training}
+            highlighted={highlightedKeys.has('training')}
           />
           <StatIdiomPair
-            key={highlightedKeys.has('morale') ? `morale-${pendingStatsDeltaKey}` : 'morale'}
-            statKey="morale" value={territory.morale}
-            highlighted={highlightedKeys.has('morale')}
+            key={highlightedKeys.has('equipment') ? `equipment-${pendingStatsDeltaKey}` : 'equipment'}
+            statKey="equipment" value={territory.equipment}
+            highlighted={highlightedKeys.has('equipment')}
           />
           <StatIdiomPair
             key={highlightedKeys.has('support') ? `support-${pendingStatsDeltaKey}` : 'support'}
@@ -110,30 +115,17 @@ export function StatsPanel() {
             highlighted={highlightedKeys.has('support')}
           />
         </div>
-        {/* Column 3: reputation idiom stats */}
-        <div className="space-y-0.5">
-          <StatIdiomPair
-            key={highlightedKeys.has('morality') ? `morality-${pendingStatsDeltaKey}` : 'morality'}
-            statKey="morality" value={publicOpinion.morality}
-            highlighted={highlightedKeys.has('morality')}
-          />
-          <StatIdiomPair
-            key={highlightedKeys.has('talent') ? `talent-${pendingStatsDeltaKey}` : 'talent'}
-            statKey="talent" value={publicOpinion.talent}
-            highlighted={highlightedKeys.has('talent')}
-          />
-        </div>
       </div>
     </aside>
   );
 }
 
-function StatIdiomPair({ statKey, value, highlighted }: { statKey: StatIdiomKey; value: number; highlighted?: boolean }) {
+function StatIdiomPair({ statKey, value, highlighted, featured }: { statKey: StatIdiomKey; value: number; highlighted?: boolean; featured?: boolean }) {
   const { idiom, colorClass } = getStatDisplay(statKey, value);
   return (
     <div className={highlighted ? 'animate-stat-flash rounded px-0.5' : undefined}>
       <span className="text-stone-500">{STAT_LABELS[statKey]}：</span>
-      <span className={`font-bold ${colorClass}`}>{idiom}</span>
+      <span className={`font-bold ${colorClass}${featured ? ' text-sm' : ''}`}>{idiom}</span>
       <span className="text-stone-400 text-[0.85em]">({value})</span>
     </div>
   );

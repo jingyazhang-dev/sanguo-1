@@ -7,21 +7,20 @@
  * appropriate to the Three Kingdoms era and a classical ink-on-paper aesthetic.
  *
  * Stats covered (display labels in game):
- *   公论: 德行, 才学
- *   领地: 兵力, 战力, 士气, 粮草, 钱粮, 民心
+ *   声望 (reputation)
+ *   领地: 兵力, 操练, 装备, 粮草, 金, 民心
  */
 
 /* ── Type definition ──────────────────────────────────────── */
 
 export type StatIdiomKey =
-  | 'morale'
-  | 'combatPower'
+  | 'reputation'
+  | 'training'
+  | 'equipment'
   | 'support'
-  | 'morality'
-  | 'talent'
   | 'military'
   | 'rations'
-  | 'funds';
+  | 'gold';
 
 /* ── Idiom data ───────────────────────────────────────────── */
 
@@ -30,32 +29,46 @@ export const STAT_IDIOMS: Record<
   readonly [string, string, string, string, string, string, string, string, string, string]
 > = {
 
-  /* ── 士气 (Morale, 0–100) ── soldier spirit & willingness to fight ── */
-  morale: [
-    '军心涣散', // 1  — mutiny-level despair; the army's will has disintegrated
-    '士无斗志', // 2  — soldiers have lost all will to fight
-    '人心惶惶', // 3  — widespread anxiety and fear in the ranks
-    '将疲兵怠', // 4  — generals tired, soldiers slack
-    '军心尚稳', // 5  — army's spirit is still steady (adequate)
-    '士气渐振', // 6  — morale is gradually rising
-    '三军用命', // 7  — all three armies obey orders willingly
-    '将士效死', // 8  — officers and soldiers ready to lay down their lives
-    '气吞万里', // 9  — spirit that swallows ten thousand li
-    '士气如虹', // 10 — morale blazes like a rainbow
+  /* ── 声望 (Reputation / Public Opinion, 0–100) ── combined virtue + ability in public eyes ── */
+  reputation: [
+    '声名狼藉', // 1  — reputation utterly ruined
+    '为世所鄙', // 2  — despised by the world
+    '时誉寥寥', // 3  — contemporary esteem thin and sparse
+    '毁誉参半', // 4  — half praise, half blame
+    '乡里知名', // 5  — known within the county and village (adequate)
+    '声望渐著', // 6  — prestige gradually making its mark
+    '颇负盛名', // 7  — bearing considerable fame
+    '名重一时', // 8  — fame weighing heavy in the present age
+    '名动一方', // 9  — fame that moves a region
+    '天下仰望', // 10 — all under heaven look up with reverence
   ],
 
-  /* ── 战力 (Combat Power, 0–100) ── derived from training + equipment ── */
-  combatPower: [
-    '乌合之众', // 1  — an undisciplined rabble
-    '兵甲破败', // 2  — weapons and armor broken and useless
-    '器械粗陋', // 3  — equipment crude and rough
+  /* ── 操练 (Training, 0–100) ── how well-drilled the troops are ── */
+  training: [
+    '未经操练', // 1  — completely untrained
+    '训练无方', // 2  — training without direction or method
+    '号令不明', // 3  — commands unclear, cannot execute orders
     '行伍不整', // 4  — ranks are not in order
     '粗通阵法', // 5  — troops roughly know battle formations (adequate)
-    '兵甲齐备', // 6  — weapons and armor in good supply
+    '纪律渐严', // 6  — discipline is gradually tightening
     '阵法严明', // 7  — formations strict and well-drilled
+    '令行禁止', // 8  — orders obeyed instantly, prohibitions observed
+    '精兵劲旅', // 9  — elite soldiers, formidable force
+    '百战精兵', // 10 — veterans hardened by a hundred battles
+  ],
+
+  /* ── 装备 (Equipment, 0–100) ── quality of arms and armor ── */
+  equipment: [
+    '草木为兵', // 1  — using sticks and branches as weapons
+    '兵甲破败', // 2  — weapons and armor broken and useless
+    '器械粗陋', // 3  — equipment crude and rough
+    '缺甲少刃', // 4  — lacking armor and blades
+    '兵器尚全', // 5  — weapons still complete (adequate)
+    '兵甲齐备', // 6  — weapons and armor in good supply
+    '铁甲精刃', // 7  — iron armor and fine blades
     '精兵强将', // 8  — elite soldiers, strong generals
-    '百战精锐', // 9  — veterans hardened by a hundred battles
-    '虎贲之师', // 10 — an army of tiger warriors
+    '兵利甲坚', // 9  — sharp weapons and solid armor
+    '甲坚兵利', // 10 — armor impenetrable, weapons razor-sharp
   ],
 
   /* ── 民心 (Popular Support, 0–100) ── how much the people support Liu Bei ── */
@@ -72,35 +85,7 @@ export const STAT_IDIOMS: Record<
     '众望所归', // 10 — the hope of all the realm converges upon you
   ],
 
-  /* ── 德行 (Morality / Virtue, 0–100) ── Liu Bei's public reputation ── */
-  morality: [
-    '暴虐无道', // 1  — cruel and without moral principle
-    '声名狼藉', // 2  — reputation utterly ruined
-    '德行有亏', // 3  — virtue found wanting
-    '毁誉参半', // 4  — praise and censure in equal measure
-    '持身尚正', // 5  — personal conduct still upright (adequate)
-    '素有仁名', // 6  — long known for benevolence
-    '德高望重', // 7  — virtue high, reputation weighty
-    '仁德昭彰', // 8  — benevolence and virtue shining clearly
-    '德被苍生', // 9  — virtue that shelters all living beings
-    '至德如天', // 10 — supreme virtue vast as heaven
-  ],
-
-  /* ── 才学 (Talent / Reputation, 0–100) ── Liu Bei's reputed ability ── */
-  talent: [
-    '庸碌无能', // 1  — mediocre and utterly incompetent
-    '才疏学浅', // 2  — sparse talent, shallow learning
-    '见识短浅', // 3  — limited in vision and knowledge
-    '略知皮毛', // 4  — knows only surface matters
-    '中人之资', // 5  — ability of an ordinary man (adequate)
-    '颇有才略', // 6  — possessing considerable resourcefulness
-    '才兼文武', // 7  — talent spanning both civil and military arts
-    '经天纬地', // 8  — ability to order heaven and earth
-    '雄才大略', // 9  — heroic talent and grand strategy
-    '旷世奇才', // 10 — a rare genius seen once in a generation
-  ],
-
-  /* ── 兵力 (Military Strength, headcount ~200–2000) ── number of soldiers ── */
+  /* ── 兵力 (Military Strength, headcount ~200–20000) ── number of soldiers ── */
   military: [
     '寥寥数卒', // 1  — a mere handful of soldiers
     '兵微将寡', // 2  — troops few, officers scarce
@@ -128,8 +113,8 @@ export const STAT_IDIOMS: Record<
     '粮秣满仓', // 10 — provisions overflow every storehouse
   ],
 
-  /* ── 钱粮 (Funds, ~0–10000) ── treasury ── */
-  funds: [
+  /* ── 金 (Gold/Funds, ~0–100000) ── treasury ── */
+  gold: [
     '囊空如洗', // 1  — purse empty as if washed clean
     '捉襟见肘', // 2  — pulling the collar exposes the elbow (barely solvent)
     '入不敷出', // 3  — income cannot cover expenditures
@@ -142,3 +127,5 @@ export const STAT_IDIOMS: Record<
     '金玉满堂', // 10 — gold and jade fill the hall
   ],
 };
+
+

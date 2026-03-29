@@ -13,43 +13,37 @@ export type RoundPhase =
 
 /* ── Game stats ───────────────────────────────────────────── */
 
-export interface PublicOpinion {
-  morality: number; // 0–100
-  talent: number;   // 0–100
-}
-
 export interface TerritoryStatus {
   military: number;   // head count
-  training: number;   // 0–10
-  equipment: number;  // 0–10
-  morale: number;     // 0–100
+  training: number;   // 0–100
+  equipment: number;  // 0–100
   rations: number;    // man*day
-  funds: number;      // raw number
+  gold: number;       // raw number
   support: number;    // 0–100
 }
 
 export interface GameStats {
-  publicOpinion: PublicOpinion;
+  /** 声望 — combined public opinion (0–100). Replaces old morality + talent split. */
+  reputation: number;
   territory: TerritoryStatus;
 }
 
 /** Convenience flat partial for applying deltas to GameStats. */
 export interface StatsDelta {
-  morality?: number;
-  talent?: number;
+  /** 声望 delta (replaces old morality / talent). */
+  reputation?: number;
   military?: number;
   training?: number;
   equipment?: number;
-  morale?: number;
   rations?: number;
-  funds?: number;
+  gold?: number;
   support?: number;
 }
 
 /* ── Combat power (derived) ───────────────────────────────── */
 
 export function combatPower(t: TerritoryStatus): number {
-  return (t.training + t.equipment) * 5;
+  return (t.training + t.equipment) / 2;
 }
 
 /* ── Followers ────────────────────────────────────────────── */
@@ -92,7 +86,6 @@ export type PrimaryTaskType =
   | 'forage'       // 征粮
   | 'tax'          // 征税
   | 'patrol'       // 治安巡逻
-  | 'visitNoble'   // 拜访名士
   | 'bodyguard';   // 贴身防卫
 
 export const PRIMARY_TASK_LABELS: Record<PrimaryTaskType, string> = {
@@ -101,7 +94,6 @@ export const PRIMARY_TASK_LABELS: Record<PrimaryTaskType, string> = {
   forage:     '征粮',
   tax:        '征税',
   patrol:     '治安巡逻',
-  visitNoble: '拜访名士',
   bodyguard:  '贴身防卫',
 };
 
@@ -183,10 +175,9 @@ export interface LevelConditions {
   kongRongUnlocked: boolean;
   miZhuUnlocked: boolean;
   chenDengUnlocked: boolean;
-  publicOpinionSet: boolean;
-  miZhuPromisedSupport: boolean;
-  miZhuProposedMarriage: boolean;
-  miZhuJoined: boolean;
+  miZhuGiftedGold: boolean;
+  miZhuMarriage: boolean;
+  chenDengRationsTopicUnlocked: boolean;
   chenDengRationsSupport: boolean;
   chenDengPromisedSupport: boolean;
   chenDengHostile: boolean;
@@ -214,10 +205,14 @@ export interface DialogueTopic {
   label: string;
   /** Precondition to show this topic. */
   available?: (conditions: LevelConditions, stats: GameStats, round: number) => boolean;
+  /** Minimum relationship required to show this topic (visit topics only). */
+  minRelationship?: number;
   /** Lines to display, randomly selected. */
   lines: string[];
   /** Optional choices after the topic narration. */
   choices?: DialogueChoice[];
+  /** Optional D20 check triggered after narration. */
+  d20Check?: D20CheckConfig;
   statsDelta?: StatsDelta;
   attrsDelta?: Partial<PlayerAttrs>;
   conditionChanges?: Partial<LevelConditions>;
@@ -229,5 +224,79 @@ export interface DialogueChoice {
   responseLines: string[];
   statsDelta?: StatsDelta;
   attrsDelta?: Partial<PlayerAttrs>;
+  conditionChanges?: Partial<LevelConditions>;
+  /** Relationship change on this contact when this choice is picked. */
+  relationshipDelta?: number;
+}
+
+/* ── Chat (闲谈) types ────────────────────────────────────── */
+
+export type ChatTopicKind = 'scripted' | 'narrative' | 'situational';
+
+export interface ChatTopic {
+  id: string;
+  kind: ChatTopicKind;
+  label: string;
+  narrative: string[];
+  choices?: DialogueChoice[];
+  d20Check?: D20CheckConfig;
+  statsDelta?: StatsDelta;
+  attrsDelta?: Partial<PlayerAttrs>;
+  conditionChanges?: Partial<LevelConditions>;
+  /** For situational topics: condition that must be met to include in pool. */
+  situationalCondition?: (stats: GameStats, conditions: LevelConditions) => boolean;
+}
+
+/* ── Dynamic topics ───────────────────────────────────────── */
+
+export interface DynamicTopicDef {
+  id: string;
+  label: string;
+  triggerCondition: (stats: GameStats, conditions: LevelConditions) => boolean;
+  removeCondition: (stats: GameStats, conditions: LevelConditions) => boolean;
+}
+
+export interface DynamicTopicResponse {
+  followerId: string;
+  lines: string[];
+  statsDelta?: StatsDelta;
+  conditionChanges?: Partial<LevelConditions>;
+  hasUsefulResponse: boolean;
+}
+
+/* ── Visit (拜访) types ───────────────────────────────────── */
+
+export interface ContactGreetingTiers {
+  cold: string[];     // rel < 30
+  neutral: string[];  // rel 30–50
+  warm: string[];     // rel 50–70
+  close: string[];    // rel > 70
+}
+
+/* ── Patrol (查访民情) v2 types ───────────────────────────── */
+
+export interface PatrolEventOption {
+  id: string;
+  label: string;
+  statsDelta: StatsDelta;
+  d20Check?: D20CheckConfig;
+  companionBonusAttr?: keyof PlayerAttrs;
+}
+
+export interface PatrolEventV2 {
+  id: string;
+  narrative: string[];
+  options: PatrolEventOption[];
+  rare: boolean;
+  hintCategory?: string;
+}
+
+/* ── Condition-based startup events ───────────────────────── */
+
+export interface ConditionBasedEvent {
+  id: string;
+  condition: (contacts: AristocraticContact[], conditions: LevelConditions) => boolean;
+  narrative: string[];
+  statsDelta?: StatsDelta;
   conditionChanges?: Partial<LevelConditions>;
 }

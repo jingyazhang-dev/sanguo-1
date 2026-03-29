@@ -13,17 +13,13 @@ export const DAYS_PER_ROUND = 10;
 /* ── Initial game stats ───────────────────────────────────── */
 
 export const INITIAL_GAME_STATS: GameStats = {
-  publicOpinion: {
-    morality: 60,
-    talent: 40,
-  },
+  reputation: 30,
   territory: {
-    military: 500,
-    training: 3,
-    equipment: 3,
-    morale: 60,
-    rations: 15_000,  // 500 soldiers × 30 days
-    funds: 1_000,
+    military: 6_000,
+    training: 50,
+    equipment: 50,
+    rations: 180_000,  // 6000 soldiers × 30 days
+    gold: 1_000,
     support: 50,
   },
 };
@@ -35,10 +31,9 @@ export const INITIAL_CONDITIONS: LevelConditions = {
   kongRongUnlocked: false,
   miZhuUnlocked: false,
   chenDengUnlocked: false,
-  publicOpinionSet: false,
-  miZhuPromisedSupport: false,
-  miZhuProposedMarriage: false,
-  miZhuJoined: false,
+  miZhuGiftedGold: false,
+  miZhuMarriage: false,
+  chenDengRationsTopicUnlocked: false,
   chenDengRationsSupport: false,
   chenDengPromisedSupport: false,
   chenDengHostile: false,
@@ -92,10 +87,9 @@ export const INITIAL_FOLLOWERS: Follower[] = [
     relationship: 80,
     assignedTask: null,
     taskPreferences: {
-      visitNoble: 8,
-      tax: 5,
-      forage: 4,
-      patrol: 3,
+      tax: 7,
+      forage: 5,
+      patrol: 4,
     },
   },
   {
@@ -109,9 +103,8 @@ export const INITIAL_FOLLOWERS: Follower[] = [
     assignedTask: null,
     taskPreferences: {
       forage: 7,
-      visitNoble: 6,
       tax: 5,
-      patrol: 3,
+      patrol: 4,
     },
   },
 ];
@@ -119,6 +112,10 @@ export const INITIAL_FOLLOWERS: Follower[] = [
 /** Ms. Gan is talk-only; she doesn't do primary tasks. */
 export const MS_GAN_ID = 'msgan';
 export const MS_GAN_NAME = '甘夫人';
+
+/** Ms. Mi is talk-only; available after miZhuMarriage. */
+export const MS_MI_ID = 'msmi';
+export const MS_MI_NAME = '糜夫人';
 
 /* ── Aristocratic contacts ────────────────────────────────── */
 
@@ -128,21 +125,21 @@ export const INITIAL_CONTACTS: AristocraticContact[] = [
     name: '孔融',
     courtesy: '文举',
     status: 'locked',
-    relationship: 30,
+    relationship: 100,
   },
   {
     id: 'mizhu',
     name: '糜竺',
     courtesy: '子仲',
     status: 'locked',
-    relationship: 0,
+    relationship: 50,
   },
   {
     id: 'chendeng',
     name: '陈登',
     courtesy: '元龙',
     status: 'locked',
-    relationship: 0,
+    relationship: 30,
   },
 ];
 
@@ -155,28 +152,43 @@ export function dailyRationConsumption(military: number): number {
 
 /* ── Relationship thresholds for Mi Zhu progression ───────── */
 
-export const MIZHU_SUPPORT_THRESHOLD = 40;
-export const MIZHU_MARRIAGE_THRESHOLD = 60;
-export const MIZHU_JOIN_THRESHOLD = 80;
-export const MIZHU_JOIN_FUNDS_BONUS = 5_000;
+export const MIZHU_GIFT_THRESHOLD = 60;
+export const MIZHU_MARRIAGE_THRESHOLD = 80;
 
 /* ── Relationship thresholds for Chen Deng ────────────────── */
 
-export const CHENDENG_RATIONS_THRESHOLD = 40;
-export const CHENDENG_SUPPORT_THRESHOLD = 60;
-export const CHENDENG_HOSTILE_THRESHOLD = 20;
+export const CHENDENG_RATIONS_THRESHOLD = 60;
+export const CHENDENG_SUPPORT_THRESHOLD = 80;
+export const CHENDENG_HOSTILE_THRESHOLD = 50;
 
 /* ── Assassin risk thresholds ─────────────────────────────── */
 
 export const LOCAL_ASSASSIN_SUPPORT_THRESHOLD = 30;
+export const CHENDENG_ASSASSIN_PROBABILITY = 0.5;
 export const CHENDENG_ASSASSIN_SUPPORT_THRESHOLD = 30;
+
+/* ── Greeting tier thresholds ─────────────────────────────── */
+
+export const GREETING_COLD = 30;
+export const GREETING_NEUTRAL = 50;
+export const GREETING_WARM = 70;
+
+/* ── Opinion gate (reputation) for Mi Zhu / Chen Deng ── */
+
+export const OPINION_GATE = 40;
 
 /* ── Final D20 check (round 12) ───────────────────────────── */
 
 export const FINAL_D20_DIFFICULTY = 15;
-export const FINAL_D20_MIZHU_MODIFIER = 2;
-export const FINAL_D20_CHENDENG_MODIFIER = 3;
+export const FINAL_D20_MIZHU_GIFTED_GOLD_MODIFIER = 2;
+export const FINAL_D20_MIZHU_MARRIAGE_MODIFIER = 3;
+export const FINAL_D20_CHENDENG_RATIONS_MODIFIER = 1;
+export const FINAL_D20_CHENDENG_SUPPORT_MODIFIER = 3;
 /** Military power modifier: floor(combatPower / 20), max 5. */
 export function finalMilitaryModifier(combatPow: number): number {
   return Math.min(5, Math.floor(combatPow / 20));
+}
+/** Public opinion modifier: floor(reputation / 20), max 3. */
+export function finalPublicOpinionModifier(reputation: number): number {
+  return Math.min(3, Math.floor(reputation / 20));
 }

@@ -1,9 +1,9 @@
 import { STAT_LABELS } from '../../engine/level1/statDisplay';
 import type { StatsDelta } from '../../types/level1Types';
 
-// Only keys present in both STAT_LABELS and StatsDelta (excludes training / equipment)
 const DIRECT_STAT_KEYS: (keyof typeof STAT_LABELS & keyof StatsDelta)[] = [
-  'military', 'rations', 'funds', 'morale', 'support', 'morality', 'talent',
+  'reputation', 'military', 'rations', 'gold', 'support',
+  'training', 'equipment',
 ];
 
 interface Props {
@@ -21,15 +21,6 @@ export function StatsDeltaPopup({ delta, onDone }: Props) {
       const color = val > 0 ? 'text-green-700' : 'text-red-800';
       changes.push({ label: STAT_LABELS[key], display: `${sign}${val}`, color });
     }
-  }
-
-  // training / equipment both contribute to combatPower — show one line with the net change
-  if ((delta.training !== undefined && delta.training !== 0) ||
-      (delta.equipment !== undefined && delta.equipment !== 0)) {
-    const cpChange = ((delta.training ?? 0) + (delta.equipment ?? 0)) * 5;
-    const sign = cpChange > 0 ? '+' : '';
-    const color = cpChange > 0 ? 'text-green-700' : 'text-red-800';
-    changes.push({ label: STAT_LABELS.combatPower, display: `${sign}${cpChange}`, color });
   }
 
   if (changes.length === 0) return null;

@@ -58,7 +58,15 @@ interface DisplaySlice {
   pendingAttrsDeltaKey: number;
 }
 
-export interface Level1State extends RoundSlice, StatsSlice, RosterSlice, DisplaySlice {
+/** Topic consumption tracking for chat (闲谈) and visit topics. */
+interface TopicTrackingSlice {
+  /** Permanently consumed topic IDs (scripted/narrative chat topics, visit topics). */
+  usedTopicIds: string[];
+  /** Per-round consumed topic IDs (situational chat topics), cleared on advanceRound. */
+  roundUsedTopicIds: string[];
+}
+
+export interface Level1State extends RoundSlice, StatsSlice, RosterSlice, DisplaySlice, TopicTrackingSlice {
   /* ── Phase transitions ──────────────────────────────────── */
 
   /** Advance to the next phase in the round cycle. */
@@ -105,6 +113,13 @@ export interface Level1State extends RoundSlice, StatsSlice, RosterSlice, Displa
 
   seedPatrolEvent: (eventId: RandomEventId | null) => void;
 
+  /* ── Topic tracking ─────────────────────────────────────── */
+
+  /** Mark a topic as consumed. permanent=true for scripted/narrative; false for situational. */
+  markTopicUsed: (topicId: string, permanent: boolean) => void;
+  /** Clear per-round topic IDs (called in advanceRound). */
+  clearRoundTopics: () => void;
+
   /* ── Win / Lose ─────────────────────────────────────────── */
 
   triggerLose: (reason: LoseReason) => void;
@@ -135,20 +150,18 @@ function nextPhase(current: RoundPhase): RoundPhase {
 /* ── Stats delta application ──────────────────────────────── */
 
 function applyStatsDeltaToStats(stats: GameStats, delta: StatsDelta): GameStats {
-  const po = { ...stats.publicOpinion };
+  let rep = stats.reputation;
   const ts = { ...stats.territory };
 
-  if (delta.morality != null) po.morality = clamp(po.morality + delta.morality, 0, 100);
-  if (delta.talent != null) po.talent = clamp(po.talent + delta.talent, 0, 100);
+  if (delta.reputation != null) rep = clamp(rep + delta.reputation, 0, 100);
   if (delta.military != null) ts.military = Math.max(0, ts.military + delta.military);
-  if (delta.training != null) ts.training = clamp(ts.training + delta.training, 0, 10);
-  if (delta.equipment != null) ts.equipment = clamp(ts.equipment + delta.equipment, 0, 10);
-  if (delta.morale != null) ts.morale = clamp(ts.morale + delta.morale, 0, 100);
+  if (delta.training != null) ts.training = clamp(ts.training + delta.training, 0, 100);
+  if (delta.equipment != null) ts.equipment = clamp(ts.equipment + delta.equipment, 0, 100);
   if (delta.rations != null) ts.rations = Math.max(0, ts.rations + delta.rations);
-  if (delta.funds != null) ts.funds = Math.max(0, ts.funds + delta.funds);
+  if (delta.gold != null) ts.gold = Math.max(0, ts.gold + delta.gold);
   if (delta.support != null) ts.support = clamp(ts.support + delta.support, 0, 100);
 
-  return { publicOpinion: po, territory: ts };
+  return { reputation: rep, territory: ts };
 }
 
 function clamp(v: number, min: number, max: number): number {
@@ -157,7 +170,7 @@ function clamp(v: number, min: number, max: number): number {
 
 /* ── Initial snapshot builder ─────────────────────────────── */
 
-function buildInitialState(): RoundSlice & StatsSlice & RosterSlice & DisplaySlice {
+function buildInitialState(): RoundSlice & StatsSlice & RosterSlice & DisplaySlice & TopicTrackingSlice {
   const playerAttrs = useGameStore.getState().playerAttrs;
   return {
     round: 1,
@@ -174,6 +187,8 @@ function buildInitialState(): RoundSlice & StatsSlice & RosterSlice & DisplaySli
     pendingStatsDeltaKey: 0,
     pendingAttrsDelta: null,
     pendingAttrsDeltaKey: 0,
+    usedTopicIds: [],
+    roundUsedTopicIds: [],
   };
 }
 
@@ -252,6 +267,7 @@ export const useLevel1Store = create<Level1State>((set, get) => ({
       phase: 'startEvents',
       standupAssignments: {},
       seededPatrolEvent: null,
+      roundUsedTopicIds: [],
       stats: {
         ...stats,
         territory: { ...stats.territory, rations: newRations },
@@ -300,17 +316,13 @@ export const useLevel1Store = create<Level1State>((set, get) => ({
       const realizedDelta: StatsDelta = {};
       const oldT = oldStats.territory;
       const newT = newStats.territory;
-      const oldPO = oldStats.publicOpinion;
-      const newPO = newStats.publicOpinion;
-      if (delta.military   !== undefined) realizedDelta.military   = newT.military   - oldT.military;
-      if (delta.rations    !== undefined) realizedDelta.rations    = newT.rations    - oldT.rations;
-      if (delta.funds      !== undefined) realizedDelta.funds      = newT.funds      - oldT.funds;
-      if (delta.morale     !== undefined) realizedDelta.morale     = newT.morale     - oldT.morale;
-      if (delta.support    !== undefined) realizedDelta.support    = newT.support    - oldT.support;
-      if (delta.training   !== undefined) realizedDelta.training   = newT.training   - oldT.training;
-      if (delta.equipment  !== undefined) realizedDelta.equipment  = newT.equipment  - oldT.equipment;
-      if (delta.morality   !== undefined) realizedDelta.morality   = newPO.morality  - oldPO.morality;
-      if (delta.talent     !== undefined) realizedDelta.talent     = newPO.talent    - oldPO.talent;
+      if (delta.reputation  !== undefined) realizedDelta.reputation  = newStats.reputation - oldStats.reputation;
+      if (delta.military    !== undefined) realizedDelta.military    = newT.military   - oldT.military;
+      if (delta.rations     !== undefined) realizedDelta.rations     = newT.rations    - oldT.rations;
+      if (delta.gold        !== undefined) realizedDelta.gold        = newT.gold       - oldT.gold;
+      if (delta.support     !== undefined) realizedDelta.support     = newT.support    - oldT.support;
+      if (delta.training    !== undefined) realizedDelta.training    = newT.training   - oldT.training;
+      if (delta.equipment   !== undefined) realizedDelta.equipment   = newT.equipment  - oldT.equipment;
       return {
         stats: newStats,
         pendingStatsDelta: realizedDelta,
@@ -399,6 +411,19 @@ export const useLevel1Store = create<Level1State>((set, get) => ({
 
   seedPatrolEvent: (eventId) => {
     set({ seededPatrolEvent: eventId });
+  },
+
+  /* ── Topic tracking ─────────────────────────────────────── */
+
+  markTopicUsed: (topicId, permanent) => {
+    set((s) => permanent
+      ? { usedTopicIds: [...s.usedTopicIds, topicId] }
+      : { roundUsedTopicIds: [...s.roundUsedTopicIds, topicId] },
+    );
+  },
+
+  clearRoundTopics: () => {
+    set({ roundUsedTopicIds: [] });
   },
 
   /* ── Win / Lose ─────────────────────────────────────────── */

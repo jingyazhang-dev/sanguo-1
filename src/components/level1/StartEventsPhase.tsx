@@ -1,31 +1,39 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLevel1Store } from '../../store/level1Store';
-import { getScriptedStartEvents } from '../../engine/level1/events/scriptedEvents';
-import { selectRandomPatrolEvent } from '../../engine/level1/events/randomEvents';
+import { getScriptedStartEvents, getConditionBasedStartEvents } from '../../engine/level1/events/scriptedEvents';
+import { PATROL_EVENTS_V2 } from '../../engine/level1/events/patrolEventsV2';
+import { selectPatrolEvent } from '../../engine/level1/patrolEngine';
 import { EventDisplay } from './EventDisplay';
 import { ClickToContinue } from './ClickToContinue';
 import { AutoAdvance } from './AutoAdvance';
 
 /**
- * Phase 1 of each round: plays scripted start events (if any),
+ * Phase 1 of each round: plays scripted start events and condition-based events,
  * seeds the patrol event for Ms. Gan hints, then advances to openingScript.
  *
- * If there are no start events for this round, skips directly to the next phase.
+ * If there are no events for this round, skips directly to the next phase.
  */
 export function StartEventsPhase() {
   const round = useLevel1Store((s) => s.round);
-  const stats = useLevel1Store((s) => s.stats);
   const conditions = useLevel1Store((s) => s.conditions);
+  const contacts = useLevel1Store((s) => s.contacts);
   const advancePhase = useLevel1Store((s) => s.advancePhase);
   const seedPatrolEvent = useLevel1Store((s) => s.seedPatrolEvent);
 
   const [narrationDone, setNarrationDone] = useState(false);
+  const [conditionEffectsApplied, setConditionEffectsApplied] = useState(false);
 
-  const events = useMemo(() => getScriptedStartEvents(round), [round]);
+  const scriptedEvents = useMemo(() => getScriptedStartEvents(round), [round]);
+  const conditionEvents = useMemo(
+    () => getConditionBasedStartEvents(contacts, conditions),
+    // Only evaluate on mount (per round) to avoid re-triggering as conditions change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [round],
+  );
 
   // Seed a patrol event for the round (for Ms. Gan hints)
   useEffect(() => {
-    const patrolEvent = selectRandomPatrolEvent(stats, conditions, round);
+    const patrolEvent = selectPatrolEvent(PATROL_EVENTS_V2, []);
     if (patrolEvent) {
       seedPatrolEvent(patrolEvent.id);
     }
@@ -33,9 +41,23 @@ export function StartEventsPhase() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [round]);
 
+  // Apply condition-based event effects when narration finishes
+  useEffect(() => {
+    if (!narrationDone || conditionEffectsApplied) return;
+    setConditionEffectsApplied(true);
+
+    const s = useLevel1Store.getState();
+    for (const evt of conditionEvents) {
+      if (evt.statsDelta) s.applyStatsDelta(evt.statsDelta);
+      if (evt.conditionChanges) s.updateConditions(evt.conditionChanges);
+    }
+  }, [narrationDone, conditionEffectsApplied, conditionEvents]);
+
   const paragraphs = useMemo(() => {
-    return events.flatMap((e) => e.narrative);
-  }, [events]);
+    const scripted = scriptedEvents.flatMap((e) => e.narrative);
+    const conditional = conditionEvents.flatMap((e) => e.narrative);
+    return [...scripted, ...conditional];
+  }, [scriptedEvents, conditionEvents]);
 
   const handleNarrationDone = useCallback(() => {
     setNarrationDone(true);
@@ -62,5 +84,3 @@ export function StartEventsPhase() {
     </div>
   );
 }
-
-

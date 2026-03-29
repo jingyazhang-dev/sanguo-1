@@ -1,10 +1,18 @@
 import type { GameStats, LevelConditions, LoseReason } from '../../types/level1Types';
 import {
   LOCAL_ASSASSIN_SUPPORT_THRESHOLD,
+  CHENDENG_ASSASSIN_PROBABILITY,
   CHENDENG_ASSASSIN_SUPPORT_THRESHOLD,
   CHENDENG_HOSTILE_THRESHOLD,
   TOTAL_ROUNDS,
+  FINAL_D20_MIZHU_GIFTED_GOLD_MODIFIER,
+  FINAL_D20_MIZHU_MARRIAGE_MODIFIER,
+  FINAL_D20_CHENDENG_RATIONS_MODIFIER,
+  FINAL_D20_CHENDENG_SUPPORT_MODIFIER,
+  finalMilitaryModifier,
+  finalPublicOpinionModifier,
 } from './constants';
+import { combatPower } from '../../types/level1Types';
 
 /**
  * Check for deterministic lose conditions after stat changes.
@@ -27,12 +35,9 @@ export function checkLoseConditions(
 }
 
 /**
- * Once-per-round assassin encounter check. Should be called exactly once
- * at the end of each round (settlement phase). Returns the assassin type
- * if an encounter is triggered, or null if the round is safe.
- *
- * The encounter result must be resolved via a D20 check in the UI layer;
- * this function only determines *if* an assassin appears.
+ * Once-per-round assassin encounter check.
+ * Chen Deng assassin: hostile + low support → 50% chance.
+ * Local assassin: low support → (30 - support) / 30 chance.
  */
 export function checkAssassinEncounter(
   stats: GameStats,
@@ -45,14 +50,14 @@ export function checkAssassinEncounter(
     conditions.chenDengHostile &&
     stats.territory.support < CHENDENG_ASSASSIN_SUPPORT_THRESHOLD
   ) {
-    if (Math.random() < 0.15) {
+    if (Math.random() < CHENDENG_ASSASSIN_PROBABILITY) {
       return 'assassin_chen';
     }
   }
 
   // Local assassin — low support
   if (stats.territory.support < LOCAL_ASSASSIN_SUPPORT_THRESHOLD) {
-    const chance = (LOCAL_ASSASSIN_SUPPORT_THRESHOLD - stats.territory.support) / 100;
+    const chance = (LOCAL_ASSASSIN_SUPPORT_THRESHOLD - stats.territory.support) / 30;
     if (Math.random() < chance) {
       return 'assassin_local';
     }
@@ -68,8 +73,8 @@ export const ASSASSIN_D20_DIFFICULTY: Record<'assassin_local' | 'assassin_chen',
 };
 
 /**
- * Determine the Chen Deng hostile flag based on relationship.
- * Should be called after updating Chen Deng's relationship.
+ * Determine the Chen Deng hostile flag.
+ * V2: hostile when rel ≤ 50 AND support < 30.
  */
 export function shouldChenDengBeHostile(
   chenDengRelationship: number,
@@ -90,6 +95,7 @@ export function isFinalRound(round: number): boolean {
 
 /**
  * Build the modifiers array for the final Xuzhou D20 check.
+ * V2: uses miZhuGiftedGold / miZhuMarriage instead of old progression.
  */
 export function buildFinalD20Modifiers(
   conditions: LevelConditions,
@@ -97,31 +103,31 @@ export function buildFinalD20Modifiers(
 ): { label: string; value: number }[] {
   const mods: { label: string; value: number }[] = [];
 
-  // Mi Zhu's support
-  if (conditions.miZhuJoined) {
-    mods.push({ label: '糜竺归附', value: 3 });
-  } else if (conditions.miZhuPromisedSupport) {
-    mods.push({ label: '糜竺支持', value: 2 });
+  // Mi Zhu's support (marriage > gift)
+  if (conditions.miZhuMarriage) {
+    mods.push({ label: '糜竺联姻', value: FINAL_D20_MIZHU_MARRIAGE_MODIFIER });
+  } else if (conditions.miZhuGiftedGold) {
+    mods.push({ label: '糜竺赠金', value: FINAL_D20_MIZHU_GIFTED_GOLD_MODIFIER });
   }
 
-  // Chen Deng's support
+  // Chen Deng's support (promised > rations)
   if (conditions.chenDengPromisedSupport) {
-    mods.push({ label: '陈登支持', value: 3 });
+    mods.push({ label: '陈登支持', value: FINAL_D20_CHENDENG_SUPPORT_MODIFIER });
   } else if (conditions.chenDengRationsSupport) {
-    mods.push({ label: '陈登粮草', value: 1 });
+    mods.push({ label: '陈登粮草', value: FINAL_D20_CHENDENG_RATIONS_MODIFIER });
   }
 
-  // Military power
-  const combatPow = (stats.territory.training + stats.territory.equipment) * 5;
-  const milMod = Math.min(5, Math.floor(combatPow / 20));
+  // Military power — derived from (training + equipment) / 2
+  const cp = combatPower(stats.territory);
+  const milMod = finalMilitaryModifier(cp);
   if (milMod > 0) {
     mods.push({ label: '军事实力', value: milMod });
   }
 
   // Public opinion
-  const opinionMod = Math.floor((stats.publicOpinion.morality + stats.publicOpinion.talent) / 40);
+  const opinionMod = finalPublicOpinionModifier(stats.reputation);
   if (opinionMod > 0) {
-    mods.push({ label: '公论声望', value: Math.min(3, opinionMod) });
+    mods.push({ label: '公论声望', value: opinionMod });
   }
 
   return mods;

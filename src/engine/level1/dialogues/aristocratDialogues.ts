@@ -5,9 +5,8 @@ import type {
   GameStats,
 } from '../../../types/level1Types';
 import {
-  MIZHU_SUPPORT_THRESHOLD,
+  MIZHU_GIFT_THRESHOLD,
   MIZHU_MARRIAGE_THRESHOLD,
-  MIZHU_JOIN_THRESHOLD,
   CHENDENG_RATIONS_THRESHOLD,
   CHENDENG_SUPPORT_THRESHOLD,
 } from '../constants';
@@ -56,7 +55,7 @@ function buildKongRongTopics(conditions: LevelConditions): DialogueTopic[] {
     // relationship +5 applied by component (greeting convention)
   });
 
-  /* 品评 — always available; sets publicOpinionSet and boosts morality/talent */
+  /* 品评 — always available; sets publicOpinionSet and boosts reputation */
   topics.push({
     id: 'kongrong-eval',
     label: '品评',
@@ -66,12 +65,12 @@ function buildKongRongTopics(conditions: LevelConditions): DialogueTopic[] {
       '孔融捻须含笑，郑重作评："玄德公忠义仁厚，有古圣贤之风。以融之见，堪为一方牧守，安定黎庶。"此语一出，座中诸客无不侧目。',
       '孔融品评之名重于九鼎，经其金口一开，刘备仁德之名将随书信口碑传遍徐州士林，于声望一道，可谓一步登天。',
     ],
-    statsDelta: { morality: 10, talent: 10 },
-    conditionChanges: { publicOpinionSet: true },
+    statsDelta: { reputation: 10 },
+    conditionChanges: { kongRongUnlocked: true },
   });
 
   /* 荐糜竺 — after public opinion is set, before Mi Zhu is unlocked */
-  if (conditions.publicOpinionSet && !conditions.miZhuUnlocked) {
+  if (conditions.kongRongUnlocked && !conditions.miZhuUnlocked) {
     topics.push({
       id: 'kongrong-intro-mizhu',
       label: '荐糜竺',
@@ -86,7 +85,7 @@ function buildKongRongTopics(conditions: LevelConditions): DialogueTopic[] {
   }
 
   /* 荐陈登 — after public opinion is set, before Chen Deng is unlocked */
-  if (conditions.publicOpinionSet && !conditions.chenDengUnlocked) {
+  if (conditions.kongRongUnlocked && !conditions.chenDengUnlocked) {
     topics.push({
       id: 'kongrong-intro-chendeng',
       label: '荐陈登',
@@ -123,8 +122,8 @@ function buildMiZhuTopics(
     // relationship +5 applied by component (greeting convention)
   });
 
-  /* 支持 — relationship >= 40, not yet promised */
-  if (contact.relationship >= MIZHU_SUPPORT_THRESHOLD && !conditions.miZhuPromisedSupport) {
+  /* 支持 — relationship >= 60, not yet gifted gold */
+  if (contact.relationship >= MIZHU_GIFT_THRESHOLD && !conditions.miZhuGiftedGold) {
     topics.push({
       id: 'mizhu-support',
       label: '支持',
@@ -134,15 +133,15 @@ function buildMiZhuTopics(
         '糜竺一拍案几，慨然应诺："使君放心！糜家经营数代，虽不敢称富甲天下，但助使君成就一番大业，竺义不容辞！"',
         '有了糜竺倾力相助，钱粮器物源源而来。刘备在徐州的根基自此有了一层坚实的后盾，行事间底气也足了几分。',
       ],
-      conditionChanges: { miZhuPromisedSupport: true },
+      conditionChanges: { miZhuGiftedGold: true },
     });
   }
 
-  /* 联姻 — relationship >= 60, support already promised, not yet proposed */
+  /* 联姻 — relationship >= 80, support already given, not yet married */
   if (
     contact.relationship >= MIZHU_MARRIAGE_THRESHOLD &&
-    conditions.miZhuPromisedSupport &&
-    !conditions.miZhuProposedMarriage
+    conditions.miZhuGiftedGold &&
+    !conditions.miZhuMarriage
   ) {
     topics.push({
       id: 'mizhu-marriage',
@@ -153,15 +152,14 @@ function buildMiZhuTopics(
         '刘备思忖再三，终于欣然应允。联姻之事就此议定，糜竺大喜，当即命人备下聘礼，筹办婚仪。',
         '消息传出，糜家上下皆以此结亲为荣。阖族更加坚定了追随使君的决心，连带着家中仆从门客，亦纷纷归心。',
       ],
-      conditionChanges: { miZhuProposedMarriage: true },
+      conditionChanges: { miZhuMarriage: true },
     });
   }
 
-  /* 效力 — relationship >= 80, marriage proposed, not yet joined */
+  /* 效力 — relationship >= 80, marriage completed, not yet formally joined */
   if (
-    contact.relationship >= MIZHU_JOIN_THRESHOLD &&
-    conditions.miZhuProposedMarriage &&
-    !conditions.miZhuJoined
+    contact.relationship >= MIZHU_MARRIAGE_THRESHOLD &&
+    conditions.miZhuMarriage
   ) {
     topics.push({
       id: 'mizhu-join',
@@ -173,8 +171,7 @@ function buildMiZhuTopics(
         '糜竺携全部家资加入后，刘备麾下兵精粮足，声势大振。文有谋臣出谋划策，武有将士枕戈待旦，气象较往日已焕然一新。',
         '徐州上下得知糜竺散尽家财归附刘备，无不为之震动。观望者暗自思忖：连糜子仲都押了全副身家，此人或真乃天命所归。',
       ],
-      conditionChanges: { miZhuJoined: true },
-      // addFollower + funds bonus applied by component
+      // addFollower + gold bonus applied by component
     });
   }
 

@@ -1,4 +1,4 @@
-import type { GameEvent } from '../../../types/level1Types';
+import type { GameEvent, ConditionBasedEvent, AristocraticContact, LevelConditions } from '../../../types/level1Types';
 
 /**
  * Scripted events that fire at specific rounds.
@@ -77,4 +77,52 @@ export function getScriptedEndEvents(round: number): GameEvent[] {
 /** Get opening script text for a given round. */
 export function getOpeningScript(round: number): string[] {
   return OPENING_SCRIPTS[round] ?? ['新的一旬开始了。天际浮云聚散，一如这乱世中人心的离合。'];
+}
+
+/* ── Condition-based startup events ───────────────────────── */
+
+const CONDITION_BASED_EVENTS: ConditionBasedEvent[] = [
+  {
+    id: 'mizhu-gold-gift',
+    condition: (contacts, conditions) => {
+      const mizhu = contacts.find((c) => c.id === 'mizhu');
+      return !!mizhu && mizhu.relationship >= 60 && !conditions.miZhuGiftedGold;
+    },
+    narrative: [
+      '清晨，一队车马在小沛营门前停下。为首之人正是糜竺，他含笑下车，身后十余辆大车上满载着箱笼。',
+      '糜竺拱手道："玄德公，竺思忖再三，徐州眼下多事之秋，区区薄资不敢妄称厚礼，不过是竺的一点心意。万金之物，不及知己一人。望使君笑纳。"',
+      '刘备再三推辞，糜竺却正色道："使君若推却，便是不拿竺当朋友了。"刘备感念其诚，终于拜谢收下。',
+    ],
+    statsDelta: { gold: 10000 },
+    conditionChanges: { miZhuGiftedGold: true },
+  },
+  {
+    id: 'mizhu-marriage',
+    condition: (contacts, conditions) => {
+      const mizhu = contacts.find((c) => c.id === 'mizhu');
+      return (
+        !!mizhu &&
+        mizhu.relationship >= 80 &&
+        conditions.miZhuGiftedGold &&
+        !conditions.miZhuMarriage
+      );
+    },
+    narrative: [
+      '入夜，糜竺遣心腹持帖来请，言有要事相商。刘备赴约，见糜竺于后堂设下家宴，席间推杯换盏，气氛融洽非常。',
+      '酒过三巡，糜竺忽然正色起身，整衣敛容，向刘备郑重一拜："玄德公，竺有一不情之请。舍妹年方二八，虽非绝色，却也知书达理、温婉贤淑。竺观使君志向远大、为人仁厚，实乃托付之人。若蒙不弃，竺愿将舍妹许配使君为妻。此非权宜之计，乃竺真心所愿。"',
+      '刘备闻言大惊，连忙起身扶住糜竺。二人推让良久，刘备终被糜竺的赤诚所动，应允了这门亲事。消息传开，小沛军民皆大欢喜——糜氏与刘使君结为姻亲，这是何等的信任与决心！',
+    ],
+    conditionChanges: { miZhuMarriage: true },
+  },
+];
+
+/**
+ * Get condition-based events that should fire this round.
+ * Each event fires exactly once (condition flags prevent re-trigger).
+ */
+export function getConditionBasedStartEvents(
+  contacts: AristocraticContact[],
+  conditions: LevelConditions,
+): ConditionBasedEvent[] {
+  return CONDITION_BASED_EVENTS.filter((e) => e.condition(contacts, conditions));
 }
