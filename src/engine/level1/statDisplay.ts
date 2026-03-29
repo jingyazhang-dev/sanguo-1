@@ -31,13 +31,14 @@ const RATIONS_THRESHOLDS = [0, 5, 10, 15, 25, 35, 50, 70, 90, 110] as const;
 const GOLD_THRESHOLDS = [0, 1000, 2000, 4000, 6000, 10000, 15000, 20000, 50000, 100000] as const;
 
 const THRESHOLDS: Record<StatIdiomKey, readonly number[]> = {
-  reputation: PERCENT_THRESHOLDS,
-  training:  PERCENT_THRESHOLDS,
-  equipment: PERCENT_THRESHOLDS,
-  support:   PERCENT_THRESHOLDS,
-  military:  MILITARY_THRESHOLDS,
-  rations:   RATIONS_THRESHOLDS,
-  gold:      GOLD_THRESHOLDS,
+  reputation:   PERCENT_THRESHOLDS,
+  training:     PERCENT_THRESHOLDS,
+  equipment:    PERCENT_THRESHOLDS,
+  support:      PERCENT_THRESHOLDS,
+  military:     MILITARY_THRESHOLDS,
+  rations:      RATIONS_THRESHOLDS,
+  gold:         GOLD_THRESHOLDS,
+  combatPower:  PERCENT_THRESHOLDS,
 };
 
 /* ── Core function ────────────────────────────────────────── */
@@ -78,11 +79,12 @@ export function getStatDisplay(key: StatIdiomKey, value: number): StatDisplay {
 /* ── Full stat label mapping ──────────────────────────────── */
 
 export const STAT_LABELS: Record<StatIdiomKey, string> = {
-  reputation: '声望',
-  training:  '操练',
-  equipment: '装备',
-  support:   '民心',
-  military:  '兵力',
-  rations:   '粮草',
-  gold:      '金',
+  reputation:  '声望',
+  training:    '操练',
+  equipment:   '装备',
+  support:     '民心',
+  military:    '兵力',
+  rations:     '粮草',
+  gold:        '金',
+  combatPower: '战力',
 };

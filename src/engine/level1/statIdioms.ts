@@ -15,12 +15,13 @@
 
 export type StatIdiomKey =
   | 'reputation'
-  | 'training'
-  | 'equipment'
+  | 'training'    // internal — not displayed; used by StatsDelta
+  | 'equipment'   // internal — not displayed; used by StatsDelta
   | 'support'
   | 'military'
   | 'rations'
-  | 'gold';
+  | 'gold'
+  | 'combatPower';
 
 /* ── Idiom data ───────────────────────────────────────────── */
 
@@ -111,6 +112,20 @@ export const STAT_IDIOMS: Record<
     '仓廪丰实', // 8  — the granaries are full and solid
     '积粮如山', // 9  — grain piled high as mountains
     '粮秣满仓', // 10 — provisions overflow every storehouse
+  ],
+
+  /* ── 战力 (Combat Power, 0–100) ── average of training + equipment ── */
+  combatPower: [
+    '乌合之众', // 1  — a disorganized rabble
+    '散兵游勇', // 2  — scattered soldiers with no cohesion
+    '疲兵残甲', // 3  — exhausted troops and broken armor
+    '勉强成军', // 4  — barely constituting an army
+    '可堪一战', // 5  — capable of giving battle (adequate)
+    '战力渐盛', // 6  — combat strength is gradually rising
+    '兵精粮足', // 7  — soldiers well-drilled, supplies sufficient
+    '精锐之师', // 8  — an elite, battle-hardened force
+    '所向披靡', // 9  — sweeping all before them
+    '虎贲之士', // 10 — warriors of the royal tiger guard
   ],
 
   /* ── 金 (Gold/Funds, ~0–100000) ── treasury ── */

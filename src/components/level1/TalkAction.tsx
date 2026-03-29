@@ -14,7 +14,7 @@ import {
   getActiveDynamicTopics,
 } from '../../engine/level1/chatEngine';
 import { EventDisplay } from './EventDisplay';
-import { D20Check } from './D20Check';
+import { D20Modal } from './D20Modal';
 import type {
   ChatTopic,
   DialogueChoice,
@@ -192,7 +192,7 @@ export function TalkAction({ onDone, onCancel }: TalkActionProps) {
   );
 
   const handleD20Result = useCallback(
-    (success: boolean) => {
+    (success: boolean, _total: number) => {
       if (step.kind !== 'chatD20') return;
       const { charId, topic } = step;
       const d20 = topic.d20Check!;
@@ -350,21 +350,33 @@ export function TalkAction({ onDone, onCancel }: TalkActionProps) {
     );
   }
 
-  /* ── Step 3c: Chat D20 check ────────────────────────────── */
+  /* ── Step 3c: Chat D20 check — topic narration shown dimmed behind modal ── */
 
   if (step.kind === 'chatD20') {
     const d20 = step.topic.d20Check!;
-    return (
-      <div className="w-full py-4 flex justify-center">
-        <D20Check
-          difficulty={d20.difficulty}
-          situation={d20.situation}
-          attrKey={d20.attrKey}
-          attrValue={attrs[d20.attrKey]}
-          modifiers={d20.modifiers}
-          onResult={handleD20Result}
-        />
+    const [narrativeLine] = step.topic.narrative;
+
+    const narrationBackground = (
+      <div className="w-full max-w-xl mx-auto py-4">
+        <p className="font-serif text-base text-center text-stone-500 mb-2 tracking-widest">
+          与{selectedCharName}闲谈
+        </p>
+        <p className="font-serif text-sm text-stone-700 leading-relaxed whitespace-pre-wrap">
+          {narrativeLine}
+        </p>
       </div>
+    );
+
+    return (
+      <D20Modal
+        background={narrationBackground}
+        difficulty={d20.difficulty}
+        situation={d20.situation}
+        attrKey={d20.attrKey}
+        attrValue={attrs[d20.attrKey]}
+        modifiers={d20.modifiers}
+        onResult={handleD20Result}
+      />
     );
   }
 

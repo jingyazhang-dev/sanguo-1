@@ -3,7 +3,7 @@ import { useLevel1Store } from '../../store/level1Store';
 import { PATROL_EVENTS_V2 } from '../../engine/level1/events/patrolEventsV2';
 import { selectPatrolEvent, getCompanionBonus, formatOptionDisplay } from '../../engine/level1/patrolEngine';
 import { EventDisplay } from './EventDisplay';
-import { D20Check } from './D20Check';
+import { D20Modal } from './D20Modal';
 import type { Follower, PatrolEventV2, PatrolEventOption, D20Modifier } from '../../types/level1Types';
 
 /* ── State machine ────────────────────────────────────────── */
@@ -203,7 +203,7 @@ export function PatrolAction({ onDone }: PatrolActionProps) {
     );
   }
 
-  // Step 4: D20 check
+  // Step 4: D20 check — option list shown dimmed behind modal
   if (step.kind === 'd20') {
     const d20 = step.option.d20Check!;
     const companionMods: D20Modifier[] = step.companionBonus > 0
@@ -213,17 +213,39 @@ export function PatrolAction({ onDone }: PatrolActionProps) {
         ]
       : d20.modifiers;
 
-    return (
-      <div className="w-full py-4 flex justify-center">
-        <D20Check
-          difficulty={d20.difficulty}
-          situation={d20.situation}
-          attrKey={d20.attrKey}
-          attrValue={attrs[d20.attrKey]}
-          modifiers={companionMods}
-          onResult={handleD20Result}
-        />
+    const optionListBackground = (
+      <div className="w-full max-w-md mx-auto py-4">
+        <h3 className="font-serif text-lg text-stone-700 text-center mb-6 tracking-widest">
+          选择行动
+        </h3>
+        <div className="space-y-3">
+          {step.event.options.map((opt) => (
+            <div
+              key={opt.id}
+              className={[
+                'w-full text-left px-4 py-3 border rounded',
+                opt.id === step.option.id
+                  ? 'border-stone-500 bg-stone-100'
+                  : 'border-stone-200',
+              ].join(' ')}
+            >
+              <span className="font-serif text-stone-800 font-bold">{opt.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
+    );
+
+    return (
+      <D20Modal
+        background={optionListBackground}
+        difficulty={d20.difficulty}
+        situation={d20.situation}
+        attrKey={d20.attrKey}
+        attrValue={attrs[d20.attrKey]}
+        modifiers={companionMods}
+        onResult={handleD20Result}
+      />
     );
   }
 

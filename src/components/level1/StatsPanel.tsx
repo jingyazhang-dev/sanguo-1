@@ -3,8 +3,9 @@ import { useLevel1Store } from '../../store/level1Store';
 import { getStatDisplay, STAT_LABELS } from '../../engine/level1/statDisplay';
 import type { StatIdiomKey } from '../../engine/level1/statIdioms';
 import type { RoundPhase, StatsDelta } from '../../types/level1Types';
+import { combatPower as calcCombatPower } from '../../types/level1Types';
 
-/* ── Round info helpers (moved from RoundHeader) ─────────── */
+/* ── Round info helpers ───────────────────────────────────── */
 
 const PHASE_LABELS: Record<RoundPhase, string> = {
   cover: '卷首',
@@ -43,6 +44,8 @@ export function StatsPanel() {
       ? Math.floor(territory.rations / territory.military)
       : null;
 
+  const combatPower = Math.floor(calcCombatPower(territory));
+
   const highlightedKeys = useMemo(() => {
     if (!pendingStatsDelta) return new Set<string>();
     const d: StatsDelta = pendingStatsDelta;
@@ -52,14 +55,17 @@ export function StatsPanel() {
     if (d.rations    !== undefined && d.rations    !== 0) keys.add('rations');
     if (d.gold       !== undefined && d.gold       !== 0) keys.add('gold');
     if (d.support    !== undefined && d.support    !== 0) keys.add('support');
-    if (d.training   !== undefined && d.training   !== 0) keys.add('training');
-    if (d.equipment  !== undefined && d.equipment  !== 0) keys.add('equipment');
+    // combatPower highlights when either training or equipment changes
+    if (
+      (d.training  !== undefined && d.training  !== 0) ||
+      (d.equipment !== undefined && d.equipment !== 0)
+    ) keys.add('combatPower');
     return keys;
   }, [pendingStatsDelta]);
 
   return (
     <aside className="w-full flex-shrink-0 border-b border-stone-200 px-3 py-1.5">
-      {/* Round info — two rows: prominent date+days, subtle phase label */}
+      {/* Round info */}
       <div className="text-center mb-1 font-serif tracking-wide">
         <p className="text-base font-bold text-stone-700">
           {getRoundDate(round)} · 余
@@ -68,46 +74,20 @@ export function StatsPanel() {
         </p>
         <p className="text-xs text-stone-400">{PHASE_LABELS[phase]}</p>
       </div>
-      {/* Reputation — full-width featured row */}
-      <div className="text-xs max-w-2xl mx-auto mb-1 text-center">
-        <StatIdiomPair
-          key={highlightedKeys.has('reputation') ? `reputation-${pendingStatsDeltaKey}` : 'reputation'}
-          statKey="reputation" value={stats.reputation}
-          highlighted={highlightedKeys.has('reputation')}
-          featured
-        />
-      </div>
-      {/* Stats grid: 2 columns — resources | military condition */}
+
+      {/* Stats grid: 2 columns, 3 rows each */}
       <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs max-w-2xl mx-auto">
-        {/* Column 1: numbered resource stats */}
+        {/* Left column: Gold, Rations, Support */}
         <div className="space-y-0.5">
-          <StatNumberPair
-            key={highlightedKeys.has('military') ? `military-${pendingStatsDeltaKey}` : 'military'}
-            statKey="military" value={territory.military}
-            highlighted={highlightedKeys.has('military')}
-          />
-          <StatNumberPair
-            key={highlightedKeys.has('rations') ? `rations-${pendingStatsDeltaKey}` : 'rations'}
-            statKey="rations" value={rationDays} suffix="日"
-            highlighted={highlightedKeys.has('rations')}
-          />
           <StatNumberPair
             key={highlightedKeys.has('gold') ? `gold-${pendingStatsDeltaKey}` : 'gold'}
             statKey="gold" value={territory.gold}
             highlighted={highlightedKeys.has('gold')}
           />
-        </div>
-        {/* Column 2: military condition idiom stats */}
-        <div className="space-y-0.5">
-          <StatIdiomPair
-            key={highlightedKeys.has('training') ? `training-${pendingStatsDeltaKey}` : 'training'}
-            statKey="training" value={territory.training}
-            highlighted={highlightedKeys.has('training')}
-          />
-          <StatIdiomPair
-            key={highlightedKeys.has('equipment') ? `equipment-${pendingStatsDeltaKey}` : 'equipment'}
-            statKey="equipment" value={territory.equipment}
-            highlighted={highlightedKeys.has('equipment')}
+          <StatNumberPair
+            key={highlightedKeys.has('rations') ? `rations-${pendingStatsDeltaKey}` : 'rations'}
+            statKey="rations" value={rationDays} suffix="日"
+            highlighted={highlightedKeys.has('rations')}
           />
           <StatIdiomPair
             key={highlightedKeys.has('support') ? `support-${pendingStatsDeltaKey}` : 'support'}
@@ -115,17 +95,36 @@ export function StatsPanel() {
             highlighted={highlightedKeys.has('support')}
           />
         </div>
+
+        {/* Right column: Reputation, Military, Combat Power */}
+        <div className="space-y-0.5">
+          <StatIdiomPair
+            key={highlightedKeys.has('reputation') ? `reputation-${pendingStatsDeltaKey}` : 'reputation'}
+            statKey="reputation" value={stats.reputation}
+            highlighted={highlightedKeys.has('reputation')}
+          />
+          <StatNumberPair
+            key={highlightedKeys.has('military') ? `military-${pendingStatsDeltaKey}` : 'military'}
+            statKey="military" value={territory.military}
+            highlighted={highlightedKeys.has('military')}
+          />
+          <StatIdiomPair
+            key={highlightedKeys.has('combatPower') ? `combatPower-${pendingStatsDeltaKey}` : 'combatPower'}
+            statKey="combatPower" value={combatPower}
+            highlighted={highlightedKeys.has('combatPower')}
+          />
+        </div>
       </div>
     </aside>
   );
 }
 
-function StatIdiomPair({ statKey, value, highlighted, featured }: { statKey: StatIdiomKey; value: number; highlighted?: boolean; featured?: boolean }) {
+function StatIdiomPair({ statKey, value, highlighted }: { statKey: StatIdiomKey; value: number; highlighted?: boolean }) {
   const { idiom, colorClass } = getStatDisplay(statKey, value);
   return (
     <div className={highlighted ? 'animate-stat-flash rounded px-0.5' : undefined}>
       <span className="text-stone-500">{STAT_LABELS[statKey]}：</span>
-      <span className={`font-bold ${colorClass}${featured ? ' text-sm' : ''}`}>{idiom}</span>
+      <span className={`font-bold ${colorClass}`}>{idiom}</span>
       <span className="text-stone-400 text-[0.85em]">({value})</span>
     </div>
   );
