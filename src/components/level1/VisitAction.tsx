@@ -56,10 +56,9 @@ export function VisitAction({ onDone, onCancel }: VisitActionProps) {
   /* Guard: have we already applied side-effects for the current dialogue? */
   const [effectsApplied, setEffectsApplied] = useState(false);
 
-  /* Contacts the player knows about (status !== 'locked') */
   const visibleContacts = useMemo(
-    () => contacts.filter((c) => c.status !== 'locked'),
-    [contacts],
+    () => contacts.filter((c) => c.status !== 'locked' || (c.id === 'kongrong' && conditions.kongRongUnlocked)),
+    [contacts, conditions.kongRongUnlocked],
   );
 
   /* ── Handlers ───────────────────────────────────────────── */

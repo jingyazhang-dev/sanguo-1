@@ -6,6 +6,8 @@ import { selectRandomRoundEvent } from '../../engine/level1/events/randomEvents'
 import { checkAssassinEncounter, ASSASSIN_D20_DIFFICULTY } from '../../engine/level1/loseCheckEngine';
 import { EventDisplay } from './EventDisplay';
 import { D20Check } from './D20Check';
+import { ClickToContinue } from './ClickToContinue';
+import { AutoAdvance } from './AutoAdvance';
 import type { PrimaryTaskResult, GameEvent, LoseReason } from '../../types/level1Types';
 
 /* ── Step state machine ─────────────────────────────────────── */
@@ -80,16 +82,6 @@ export function SettlementPhase() {
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [completedItems]);
-
-  // Auto-advance when all log items are done; 600ms delay so user sees final state
-  const hasLogItems = taskReports.length + endEvents.length > 0;
-  useEffect(() => {
-    if (step.kind === 'done') {
-      const delay = hasLogItems ? 600 : 0;
-      const id = setTimeout(() => advancePhase(), delay);
-      return () => clearTimeout(id);
-    }
-  }, [step, advancePhase, hasLogItems]);
 
   /* ── Transition to assassin check or advance ──────────────── */
 
@@ -242,10 +234,8 @@ export function SettlementPhase() {
     currentKey = `end-${event.id}-${step.eventIndex}`;
     currentParagraphs = event.narrative;
   } else {
-    // step.kind === 'done' — show accumulated log, waiting for 600ms timer
-    return completedItems.length === 0 ? null : (
-      <SettlementLog completedItems={completedItems} />
-    );
+    // step.kind === 'done' — show accumulated log with click-to-continue
+    return <SettlementLog completedItems={completedItems} advancePhase={advancePhase} />;
   }
 
   return (
@@ -290,15 +280,19 @@ function CompletedItemList({ items }: { items: CompletedItem[] }) {
   );
 }
 
-/* ── Static log display (used when step is done, 600ms hold) ─ */
+/* ── Static log display (used when step is done) ─────────── */
 
-function SettlementLog({ completedItems }: { completedItems: CompletedItem[] }) {
+function SettlementLog({ completedItems, advancePhase }: { completedItems: CompletedItem[]; advancePhase: () => void }) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Scroll to bottom on mount so the last item is visible
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+    if (completedItems.length > 0) {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [completedItems.length]);
+
+  if (completedItems.length === 0) return <AutoAdvance onAdvance={advancePhase} />;
 
   return (
     <div className="w-full max-w-md mx-auto py-4">
@@ -309,6 +303,7 @@ function SettlementLog({ completedItems }: { completedItems: CompletedItem[] }) 
         <CompletedItemList items={completedItems} />
         <div ref={bottomRef} />
       </div>
+      <ClickToContinue onClick={advancePhase} />
     </div>
   );
 }

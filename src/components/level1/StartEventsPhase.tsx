@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLevel1Store } from '../../store/level1Store';
 import { getScriptedStartEvents } from '../../engine/level1/events/scriptedEvents';
 import { selectRandomPatrolEvent } from '../../engine/level1/events/randomEvents';
 import { EventDisplay } from './EventDisplay';
 import { ClickToContinue } from './ClickToContinue';
+import { AutoAdvance } from './AutoAdvance';
 
 /**
  * Phase 1 of each round: plays scripted start events (if any),
@@ -62,13 +63,4 @@ export function StartEventsPhase() {
   );
 }
 
-/** Immediately calls onAdvance on mount (guarded against StrictMode double-fire). */
-function AutoAdvance({ onAdvance }: { onAdvance: () => void }) {
-  const firedRef = useRef(false);
-  useEffect(() => {
-    if (firedRef.current) return;
-    firedRef.current = true;
-    onAdvance();
-  }, [onAdvance]);
-  return null;
-}
+

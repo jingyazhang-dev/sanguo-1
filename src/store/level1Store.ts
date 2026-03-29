@@ -48,7 +48,17 @@ interface RosterSlice {
   conditions: LevelConditions;
 }
 
-export interface Level1State extends RoundSlice, StatsSlice, RosterSlice {
+/** Transient display state for stat/attr change popups. */
+interface DisplaySlice {
+  pendingStatsDelta: StatsDelta | null;
+  /** Incremented on every applyStatsDelta call; use as React key to restart animation. */
+  pendingStatsDeltaKey: number;
+  pendingAttrsDelta: Partial<PlayerAttrs> | null;
+  /** Incremented on every applyAttrsDelta call; use as React key to restart animation. */
+  pendingAttrsDeltaKey: number;
+}
+
+export interface Level1State extends RoundSlice, StatsSlice, RosterSlice, DisplaySlice {
   /* ── Phase transitions ──────────────────────────────────── */
 
   /** Advance to the next phase in the round cycle. */
@@ -76,6 +86,8 @@ export interface Level1State extends RoundSlice, StatsSlice, RosterSlice {
 
   applyStatsDelta: (delta: StatsDelta) => void;
   applyAttrsDelta: (delta: Partial<PlayerAttrs>) => void;
+  clearPendingStatsDelta: () => void;
+  clearPendingAttrsDelta: () => void;
 
   /* ── Roster mutations ───────────────────────────────────── */
 
@@ -145,7 +157,7 @@ function clamp(v: number, min: number, max: number): number {
 
 /* ── Initial snapshot builder ─────────────────────────────── */
 
-function buildInitialState(): RoundSlice & StatsSlice & RosterSlice {
+function buildInitialState(): RoundSlice & StatsSlice & RosterSlice & DisplaySlice {
   const playerAttrs = useGameStore.getState().playerAttrs;
   return {
     round: 1,
@@ -158,6 +170,10 @@ function buildInitialState(): RoundSlice & StatsSlice & RosterSlice {
     followers: structuredClone(INITIAL_FOLLOWERS),
     contacts: structuredClone(INITIAL_CONTACTS),
     conditions: { ...INITIAL_CONDITIONS },
+    pendingStatsDelta: null,
+    pendingStatsDeltaKey: 0,
+    pendingAttrsDelta: null,
+    pendingAttrsDeltaKey: 0,
   };
 }
 
@@ -181,16 +197,16 @@ export const useLevel1Store = create<Level1State>((set, get) => ({
     if (phase === 'endingEvents') {
       // End of round — either advance round or end level
       if (round >= TOTAL_ROUNDS) {
-        // Deduct rations for the final round before transitioning
-        const { stats } = get();
+        // Deduct rations for the final round; check lose conditions atomically
+        const { stats, conditions } = get();
         const rationCost = stats.territory.military * DAYS_PER_ROUND;
         const newRations = Math.max(0, stats.territory.rations - rationCost);
+        const newStats = { ...stats, territory: { ...stats.territory, rations: newRations } };
+        const loseReason = checkLoseConditions(newStats, conditions, round);
         set({
           phase: 'levelEnd',
-          stats: {
-            ...stats,
-            territory: { ...stats.territory, rations: newRations },
-          },
+          stats: newStats,
+          conditions: loseReason ? { ...conditions, loseReason } : conditions,
         });
       } else {
         get().advanceRound();
@@ -243,6 +259,11 @@ export const useLevel1Store = create<Level1State>((set, get) => ({
       followers: updatedFollowers,
       conditions: { ...get().conditions, hasBodyguard: false },
     });
+
+    // Check lose conditions after ration deduction (bypasses applyStatsDelta)
+    const s = get();
+    const loseReason = checkLoseConditions(s.stats, s.conditions, s.round);
+    if (loseReason) s.triggerLose(loseReason);
   },
 
   /* ── Standup ────────────────────────────────────────────── */
@@ -264,7 +285,8 @@ export const useLevel1Store = create<Level1State>((set, get) => ({
 
   applyStatsDelta: (delta) => {
     set((s) => {
-      const newStats = applyStatsDeltaToStats(s.stats, delta);
+      const oldStats = s.stats;
+      const newStats = applyStatsDeltaToStats(oldStats, delta);
       // Check lose conditions after stat change
       const loseReason = checkLoseConditions(newStats, s.conditions, s.round);
       if (loseReason) {
@@ -274,13 +296,39 @@ export const useLevel1Store = create<Level1State>((set, get) => ({
           conditions: { ...s.conditions, loseReason },
         };
       }
-      return { stats: newStats };
+      // Compute realized (clamped) delta so the popup shows what actually changed
+      const realizedDelta: StatsDelta = {};
+      const oldT = oldStats.territory;
+      const newT = newStats.territory;
+      const oldPO = oldStats.publicOpinion;
+      const newPO = newStats.publicOpinion;
+      if (delta.military   !== undefined) realizedDelta.military   = newT.military   - oldT.military;
+      if (delta.rations    !== undefined) realizedDelta.rations    = newT.rations    - oldT.rations;
+      if (delta.funds      !== undefined) realizedDelta.funds      = newT.funds      - oldT.funds;
+      if (delta.morale     !== undefined) realizedDelta.morale     = newT.morale     - oldT.morale;
+      if (delta.support    !== undefined) realizedDelta.support    = newT.support    - oldT.support;
+      if (delta.training   !== undefined) realizedDelta.training   = newT.training   - oldT.training;
+      if (delta.equipment  !== undefined) realizedDelta.equipment  = newT.equipment  - oldT.equipment;
+      if (delta.morality   !== undefined) realizedDelta.morality   = newPO.morality  - oldPO.morality;
+      if (delta.talent     !== undefined) realizedDelta.talent     = newPO.talent    - oldPO.talent;
+      return {
+        stats: newStats,
+        pendingStatsDelta: realizedDelta,
+        pendingStatsDeltaKey: s.pendingStatsDeltaKey + 1,
+      };
     });
   },
 
   applyAttrsDelta: (delta) => {
-    set((s) => ({ attrs: applyDelta(s.attrs, delta) }));
+    set((s) => ({
+      attrs: applyDelta(s.attrs, delta),
+      pendingAttrsDelta: delta,
+      pendingAttrsDeltaKey: s.pendingAttrsDeltaKey + 1,
+    }));
   },
+
+  clearPendingStatsDelta: () => set({ pendingStatsDelta: null }),
+  clearPendingAttrsDelta: () => set({ pendingAttrsDelta: null }),
 
   /* ── Roster mutations ───────────────────────────────────── */
 

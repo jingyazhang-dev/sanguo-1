@@ -1,8 +1,9 @@
+import { useMemo } from 'react';
 import { useLevel1Store } from '../../store/level1Store';
 import { combatPower } from '../../types/level1Types';
 import { getStatDisplay, STAT_LABELS } from '../../engine/level1/statDisplay';
 import type { StatIdiomKey } from '../../engine/level1/statIdioms';
-import type { RoundPhase } from '../../types/level1Types';
+import type { RoundPhase, StatsDelta } from '../../types/level1Types';
 
 /* ── Round info helpers (moved from RoundHeader) ─────────── */
 
@@ -34,6 +35,8 @@ export function StatsPanel() {
   const round = useLevel1Store((s) => s.round);
   const daysLeft = useLevel1Store((s) => s.daysLeft);
   const phase = useLevel1Store((s) => s.phase);
+  const pendingStatsDelta = useLevel1Store((s) => s.pendingStatsDelta);
+  const pendingStatsDeltaKey = useLevel1Store((s) => s.pendingStatsDeltaKey);
 
   const { publicOpinion, territory } = stats;
   const cp = combatPower(territory);
@@ -41,6 +44,22 @@ export function StatsPanel() {
     territory.military > 0
       ? Math.floor(territory.rations / territory.military)
       : null;
+
+  const highlightedKeys = useMemo(() => {
+    if (!pendingStatsDelta) return new Set<string>();
+    const d: StatsDelta = pendingStatsDelta;
+    const keys = new Set<string>();
+    if (d.military  !== undefined && d.military  !== 0) keys.add('military');
+    if (d.rations   !== undefined && d.rations   !== 0) keys.add('rations');
+    if (d.funds     !== undefined && d.funds     !== 0) keys.add('funds');
+    if (d.morale    !== undefined && d.morale    !== 0) keys.add('morale');
+    if (d.support   !== undefined && d.support   !== 0) keys.add('support');
+    if (d.morality  !== undefined && d.morality  !== 0) keys.add('morality');
+    if (d.talent    !== undefined && d.talent    !== 0) keys.add('talent');
+    if ((d.training !== undefined && d.training  !== 0) ||
+        (d.equipment !== undefined && d.equipment !== 0)) keys.add('combatPower');
+    return keys;
+  }, [pendingStatsDelta]);
 
   return (
     <aside className="w-full flex-shrink-0 border-b border-stone-200 px-3 py-2">
@@ -52,37 +71,69 @@ export function StatsPanel() {
       <div className="grid grid-cols-3 gap-x-2 gap-y-0.5 text-xs max-w-2xl mx-auto">
         {/* Column 1: numbered resource stats */}
         <div className="space-y-0.5">
-          <StatNumberPair statKey="military" value={territory.military} />
-          <StatNumberPair statKey="rations" value={rationDays} suffix="日" />
-          <StatNumberPair statKey="funds" value={territory.funds} />
+          <StatNumberPair
+            key={highlightedKeys.has('military') ? `military-${pendingStatsDeltaKey}` : 'military'}
+            statKey="military" value={territory.military}
+            highlighted={highlightedKeys.has('military')}
+          />
+          <StatNumberPair
+            key={highlightedKeys.has('rations') ? `rations-${pendingStatsDeltaKey}` : 'rations'}
+            statKey="rations" value={rationDays} suffix="日"
+            highlighted={highlightedKeys.has('rations')}
+          />
+          <StatNumberPair
+            key={highlightedKeys.has('funds') ? `funds-${pendingStatsDeltaKey}` : 'funds'}
+            statKey="funds" value={territory.funds}
+            highlighted={highlightedKeys.has('funds')}
+          />
         </div>
         {/* Column 2: combat-related idiom stats */}
         <div className="space-y-0.5">
-          <StatIdiomPair statKey="combatPower" value={cp} />
-          <StatIdiomPair statKey="morale" value={territory.morale} />
-          <StatIdiomPair statKey="support" value={territory.support} />
+          <StatIdiomPair
+            key={highlightedKeys.has('combatPower') ? `combatPower-${pendingStatsDeltaKey}` : 'combatPower'}
+            statKey="combatPower" value={cp}
+            highlighted={highlightedKeys.has('combatPower')}
+          />
+          <StatIdiomPair
+            key={highlightedKeys.has('morale') ? `morale-${pendingStatsDeltaKey}` : 'morale'}
+            statKey="morale" value={territory.morale}
+            highlighted={highlightedKeys.has('morale')}
+          />
+          <StatIdiomPair
+            key={highlightedKeys.has('support') ? `support-${pendingStatsDeltaKey}` : 'support'}
+            statKey="support" value={territory.support}
+            highlighted={highlightedKeys.has('support')}
+          />
         </div>
         {/* Column 3: reputation idiom stats */}
         <div className="space-y-0.5">
-          <StatIdiomPair statKey="morality" value={publicOpinion.morality} />
-          <StatIdiomPair statKey="talent" value={publicOpinion.talent} />
+          <StatIdiomPair
+            key={highlightedKeys.has('morality') ? `morality-${pendingStatsDeltaKey}` : 'morality'}
+            statKey="morality" value={publicOpinion.morality}
+            highlighted={highlightedKeys.has('morality')}
+          />
+          <StatIdiomPair
+            key={highlightedKeys.has('talent') ? `talent-${pendingStatsDeltaKey}` : 'talent'}
+            statKey="talent" value={publicOpinion.talent}
+            highlighted={highlightedKeys.has('talent')}
+          />
         </div>
       </div>
     </aside>
   );
 }
 
-function StatIdiomPair({ statKey, value }: { statKey: StatIdiomKey; value: number }) {
+function StatIdiomPair({ statKey, value, highlighted }: { statKey: StatIdiomKey; value: number; highlighted?: boolean }) {
   const { idiom, colorClass } = getStatDisplay(statKey, value);
   return (
-    <div className="whitespace-nowrap">
+    <div className={`whitespace-nowrap${highlighted ? ' animate-stat-flash rounded px-0.5' : ''}`}>
       <span className="text-stone-500">{STAT_LABELS[statKey]}：</span>
       <span className={`font-bold ${colorClass}`}>{idiom}</span>
     </div>
   );
 }
 
-function StatNumberPair({ statKey, value, suffix }: { statKey: StatIdiomKey; value: number | null; suffix?: string }) {
+function StatNumberPair({ statKey, value, suffix, highlighted }: { statKey: StatIdiomKey; value: number | null; suffix?: string; highlighted?: boolean }) {
   if (value === null) {
     return (
       <div className="whitespace-nowrap">
@@ -93,7 +144,7 @@ function StatNumberPair({ statKey, value, suffix }: { statKey: StatIdiomKey; val
   }
   const { colorClass } = getStatDisplay(statKey, value);
   return (
-    <div className="whitespace-nowrap">
+    <div className={`whitespace-nowrap${highlighted ? ' animate-stat-flash rounded px-0.5' : ''}`}>
       <span className="text-stone-500">{STAT_LABELS[statKey]}：</span>
       <span className={`font-bold ${colorClass}`}>{value.toLocaleString()}{suffix ?? ''}</span>
     </div>

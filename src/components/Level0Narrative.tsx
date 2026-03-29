@@ -99,7 +99,7 @@ export function Level0Narrative() {
     <div className="relative h-full flex flex-col items-center overflow-hidden">
       {/* Text content — click anywhere on it to skip the current typing animation */}
       <div
-        className="w-full max-w-xl px-6 sm:px-8 py-8 sm:py-12 pb-[max(6rem,env(safe-area-inset-bottom,6rem))] cursor-pointer flex-1 overflow-y-auto"
+        className="w-full max-w-xl px-6 sm:px-8 py-8 sm:py-12 pb-[max(6rem,env(safe-area-inset-bottom,6rem))] cursor-pointer flex-1 min-h-0 overflow-y-auto"
         onClick={handleContentClick}
       >
         <TypeInRenderer

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import type { PlayerAttrs } from '../types/player';
 
 const ATTR_LABELS: Record<keyof PlayerAttrs, string> = {
@@ -15,21 +14,6 @@ interface Props {
 }
 
 export function AttrChangePopup({ delta, onDone }: Props) {
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setVisible(false);
-    }, 2000);
-    const removeTimer = setTimeout(() => {
-      onDone();
-    }, 2500);
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(removeTimer);
-    };
-  }, [onDone]);
-
   const changes = ATTR_KEYS
     .filter((key) => delta[key] !== undefined && delta[key] !== 0)
     .map((key) => {
@@ -45,10 +29,11 @@ export function AttrChangePopup({ delta, onDone }: Props) {
     <div
       role="status"
       aria-live="polite"
-      className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50
+      className="fixed top-1/3 left-1/2 z-50
         font-serif tracking-wider px-8 py-5
         border border-stone-300 bg-[#faf8f5] rounded shadow-md
-        transition-all duration-500 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+        animate-float-up-fade"
+      onAnimationEnd={onDone}
     >
       <div className="flex items-center gap-6">
         {changes.map((c, i) => (
