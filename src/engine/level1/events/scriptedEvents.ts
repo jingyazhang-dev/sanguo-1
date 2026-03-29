@@ -1,4 +1,5 @@
 import type { GameEvent, ConditionBasedEvent, AristocraticContact, LevelConditions } from '../../../types/level1Types';
+import { MIZHU_GIFT_THRESHOLD, MIZHU_MARRIAGE_THRESHOLD } from '../constants';
 
 /**
  * Scripted events that fire at specific rounds.
@@ -86,7 +87,7 @@ const CONDITION_BASED_EVENTS: ConditionBasedEvent[] = [
     id: 'mizhu-gold-gift',
     condition: (contacts, conditions) => {
       const mizhu = contacts.find((c) => c.id === 'mizhu');
-      return !!mizhu && mizhu.relationship >= 60 && !conditions.miZhuGiftedGold;
+      return !!mizhu && mizhu.relationship >= MIZHU_GIFT_THRESHOLD && !conditions.miZhuGiftedGold;
     },
     narrative: [
       '清晨，一队车马在小沛营门前停下。为首之人正是糜竺，他含笑下车，身后十余辆大车上满载着箱笼。',
@@ -102,7 +103,7 @@ const CONDITION_BASED_EVENTS: ConditionBasedEvent[] = [
       const mizhu = contacts.find((c) => c.id === 'mizhu');
       return (
         !!mizhu &&
-        mizhu.relationship >= 80 &&
+        mizhu.relationship >= MIZHU_MARRIAGE_THRESHOLD &&
         conditions.miZhuGiftedGold &&
         !conditions.miZhuMarriage
       );

@@ -53,7 +53,7 @@ export function getAvailableTopics(
   const used = new Set(usedTopicIds);
   return topics.filter((t) => {
     if (used.has(t.id)) return false;
-    if (t.available && !t.available(conditions, stats as never, round)) return false;
+    if (t.available && !t.available(conditions, stats, round)) return false;
     if (t.minRelationship != null && relationship != null && relationship < t.minRelationship) return false;
     return true;
   });

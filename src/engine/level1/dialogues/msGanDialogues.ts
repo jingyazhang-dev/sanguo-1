@@ -288,7 +288,7 @@ export const MS_GAN_CHAT_TOPICS: ChatTopic[] = [
     situationalCondition: (stats: GameStats, _cond: LevelConditions) => stats.territory.gold < 200,
   },
   {
-    id: 'msgan-situational-morality-low',
+    id: 'msgan-situational-reputation-low',
     kind: 'situational',
     label: '闲话德行',
     narrative: [

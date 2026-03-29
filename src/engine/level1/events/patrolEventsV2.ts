@@ -2,7 +2,7 @@ import type { PatrolEventV2 } from '../../../types/level1Types';
 
 /**
  * V2 patrol events — multi-option encounters during 查访民情.
- * 10 events: 2 rations, 2 military, 2 support, 2 gold, 2 morality/mixed.
+ * 10 events: 2 rations, 2 military, 2 support, 2 gold, 2 reputation/mixed.
  * 4 rare (with D20 options), 6 common.
  */
 export const PATROL_EVENTS_V2: PatrolEventV2[] = [
@@ -336,7 +336,7 @@ export const PATROL_EVENTS_V2: PatrolEventV2[] = [
      ══════════════════════════════════════════════════════════ */
 
   {
-    id: 'patrol-morality-soldier-theft',
+    id: 'patrol-reputation-soldier-theft',
     rare: false,
     hintCategory: 'support',
     narrative: [

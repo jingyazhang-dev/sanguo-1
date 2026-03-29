@@ -455,7 +455,7 @@ export const FOLLOWER_CHAT_TOPICS: Record<string, ChatTopic[]> = {
       situationalCondition: (stats: GameStats, _cond: LevelConditions) => stats.territory.support < 35,
     },
     {
-      id: 'jianyong-t3-morality-low',
+      id: 'jianyong-t3-reputation-low',
       kind: 'situational',
       label: '德名受损',
       narrative: [

@@ -264,6 +264,7 @@ export function TalkAction({ onDone, onCancel }: TalkActionProps) {
   if (step.kind === 'selectTopic') {
     const { charId } = step;
     const isMsGan = charId === MS_GAN_ID;
+    const isMsMi  = charId === MS_MI_ID;
 
     return (
       <div className="w-full max-w-md mx-auto py-4">
@@ -289,8 +290,8 @@ export function TalkAction({ onDone, onCancel }: TalkActionProps) {
             </button>
           )}
 
-          {/* Active dynamic topics */}
-          {activeDynamicTopics.map((dt) => (
+          {/* Active dynamic topics (not shown for Ms. Mi) */}
+          {!isMsMi && activeDynamicTopics.map((dt) => (
             <button
               key={dt.id}
               className="w-full text-left px-4 py-3 border border-amber-200 rounded hover:bg-amber-50 transition-colors"
