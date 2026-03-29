@@ -62,11 +62,16 @@ export function StatsPanel() {
   }, [pendingStatsDelta]);
 
   return (
-    <aside className="w-full flex-shrink-0 border-b border-stone-200 px-3 py-2">
-      {/* Round info row */}
-      <p className="text-xs text-stone-500 text-center mb-1 font-serif tracking-wide">
-        {getRoundDate(round)} · 余{daysLeft}日 · {PHASE_LABELS[phase]}
-      </p>
+    <aside className="w-full flex-shrink-0 border-b border-stone-200 px-3 py-1.5">
+      {/* Round info — two rows: prominent date+days, subtle phase label */}
+      <div className="text-center mb-1 font-serif tracking-wide">
+        <p className="text-base font-bold text-stone-700">
+          {getRoundDate(round)} · 余
+          <span className={daysLeft < 4 ? 'text-red-800' : undefined}>{daysLeft}</span>
+          日
+        </p>
+        <p className="text-xs text-stone-400">{PHASE_LABELS[phase]}</p>
+      </div>
       {/* Stats grid: 3 columns */}
       <div className="grid grid-cols-3 gap-x-2 gap-y-0.5 text-xs max-w-2xl mx-auto">
         {/* Column 1: numbered resource stats */}
@@ -126,9 +131,10 @@ export function StatsPanel() {
 function StatIdiomPair({ statKey, value, highlighted }: { statKey: StatIdiomKey; value: number; highlighted?: boolean }) {
   const { idiom, colorClass } = getStatDisplay(statKey, value);
   return (
-    <div className={`whitespace-nowrap${highlighted ? ' animate-stat-flash rounded px-0.5' : ''}`}>
+    <div className={highlighted ? 'animate-stat-flash rounded px-0.5' : undefined}>
       <span className="text-stone-500">{STAT_LABELS[statKey]}：</span>
       <span className={`font-bold ${colorClass}`}>{idiom}</span>
+      <span className="text-stone-400 text-[0.85em]">({value})</span>
     </div>
   );
 }

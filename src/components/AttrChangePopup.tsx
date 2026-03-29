@@ -19,7 +19,7 @@ export function AttrChangePopup({ delta, onDone }: Props) {
     .map((key) => {
       const val = delta[key]!;
       const sign = val > 0 ? '+' : '';
-      const color = val > 0 ? 'text-red-700' : 'text-stone-400';
+      const color = val > 0 ? 'text-green-700' : 'text-red-800';
       return { label: ATTR_LABELS[key], display: `${sign}${val}`, color };
     });
 

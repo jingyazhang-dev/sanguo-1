@@ -18,7 +18,7 @@ export function StatsDeltaPopup({ delta, onDone }: Props) {
     const val = delta[key];
     if (val !== undefined && val !== 0) {
       const sign = val > 0 ? '+' : '';
-      const color = val > 0 ? 'text-red-700' : 'text-stone-400';
+      const color = val > 0 ? 'text-green-700' : 'text-red-800';
       changes.push({ label: STAT_LABELS[key], display: `${sign}${val}`, color });
     }
   }
@@ -28,7 +28,7 @@ export function StatsDeltaPopup({ delta, onDone }: Props) {
       (delta.equipment !== undefined && delta.equipment !== 0)) {
     const cpChange = ((delta.training ?? 0) + (delta.equipment ?? 0)) * 5;
     const sign = cpChange > 0 ? '+' : '';
-    const color = cpChange > 0 ? 'text-red-700' : 'text-stone-400';
+    const color = cpChange > 0 ? 'text-green-700' : 'text-red-800';
     changes.push({ label: STAT_LABELS.combatPower, display: `${sign}${cpChange}`, color });
   }
 

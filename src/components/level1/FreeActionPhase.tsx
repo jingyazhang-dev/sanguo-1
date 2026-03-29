@@ -7,6 +7,28 @@ import { FREE_ACTION_DAYS } from '../../types/level1Types';
 import { TalkAction } from './TalkAction';
 import { PatrolAction } from './PatrolAction';
 
+/* ── Narrative hints for days remaining ─────────────────────── */
+
+// Must cover the full range 1..DAYS_PER_ROUND (currently 10).
+const FREE_ACTION_HINTS: Partial<Record<number, string>> = {
+  10: '旬初方启，时日充裕',
+  9:  '诸事在前，可徐图之',
+  8:  '日出方长，何所不可',
+  7:  '曙光初照，旬日方长',
+  6:  '晨光正好，从容可期',
+  5:  '日过中天，犹未晚也',
+  4:  '日色渐西，当有所为',
+  3:  '西日已斜，须速图之',
+  2:  '暮色将至，莫负此时',
+  1:  '灯火将残，今日最末',
+};
+
+const DEFAULT_FREE_ACTION_HINT = '时不我待，当思所为';
+
+function getFreeActionHint(daysLeft: number): string {
+  return FREE_ACTION_HINTS[daysLeft] ?? DEFAULT_FREE_ACTION_HINT;
+}
+
 /**
  * Phase 4: Free Action / 自由行动
  * Player chooses from available actions until days run out.
@@ -69,11 +91,8 @@ export function FreeActionPhase() {
   // Show action menu
   return (
     <div className="w-full max-w-md mx-auto py-4">
-      <h3 className="font-serif text-lg text-stone-700 text-center mb-2 tracking-widest">
-        自由行动
-      </h3>
-      <p className="text-sm text-stone-500 text-center mb-6">
-        余 <span className="font-bold text-stone-700">{daysLeft}</span> 日
+      <p className="font-serif text-sm text-stone-500 text-center mb-6 tracking-wide italic">
+        {getFreeActionHint(daysLeft)}
       </p>
 
       <div className="space-y-3">

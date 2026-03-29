@@ -12,13 +12,20 @@
   --color-stat-9: #EA580C;
   --color-stat-10: #CA8A04;
 
-  --animate-float-up-fade: float-up-fade 1.4s ease-out forwards;
+  --animate-float-up-fade: float-up-fade 3.75s ease-out forwards;
   --animate-stat-flash: stat-flash 0.9s ease-out forwards;
 }
 
 @keyframes float-up-fade {
-  from { opacity: 1; transform: translate(-50%, -50%) translateY(0); }
-  to   { opacity: 0; transform: translate(-50%, -50%) translateY(-40px); }
+  0%, 80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(0);
+    animation-timing-function: linear;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(-40px);
+  }
 }
 
 @keyframes stat-flash {
