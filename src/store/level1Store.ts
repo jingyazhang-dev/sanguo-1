@@ -66,7 +66,15 @@ interface TopicTrackingSlice {
   roundUsedTopicIds: string[];
 }
 
-export interface Level1State extends RoundSlice, StatsSlice, RosterSlice, DisplaySlice, TopicTrackingSlice {
+/** Level-persistent gameplay counters. */
+interface CounterSlice {
+  /** Number of D20 rerolls used this level (cost = n²×100 gold where n = count+1). */
+  d20RerollCount: number;
+  /** Number of forage (征粮) collections completed this level (drives reward decay). */
+  forageCount: number;
+}
+
+export interface Level1State extends RoundSlice, StatsSlice, RosterSlice, DisplaySlice, TopicTrackingSlice, CounterSlice {
   /* ── Phase transitions ──────────────────────────────────── */
 
   /** Advance to the next phase in the round cycle. */
@@ -120,6 +128,13 @@ export interface Level1State extends RoundSlice, StatsSlice, RosterSlice, Displa
   /** Clear per-round topic IDs (called in advanceRound). */
   clearRoundTopics: () => void;
 
+  /* ── Gameplay counters ───────────────────────────────────── */
+
+  /** Increment the level-wide D20 reroll count. */
+  incrementD20Reroll: () => void;
+  /** Increment the level-wide forage collection count. */
+  incrementForageCount: () => void;
+
   /* ── Win / Lose ─────────────────────────────────────────── */
 
   triggerLose: (reason: LoseReason) => void;
@@ -170,7 +185,7 @@ function clamp(v: number, min: number, max: number): number {
 
 /* ── Initial snapshot builder ─────────────────────────────── */
 
-function buildInitialState(): RoundSlice & StatsSlice & RosterSlice & DisplaySlice & TopicTrackingSlice {
+function buildInitialState(): RoundSlice & StatsSlice & RosterSlice & DisplaySlice & TopicTrackingSlice & CounterSlice {
   const playerAttrs = useGameStore.getState().playerAttrs;
   return {
     round: 1,
@@ -189,6 +204,8 @@ function buildInitialState(): RoundSlice & StatsSlice & RosterSlice & DisplaySli
     pendingAttrsDeltaKey: 0,
     usedTopicIds: [],
     roundUsedTopicIds: [],
+    d20RerollCount: 0,
+    forageCount: 0,
   };
 }
 
@@ -424,6 +441,16 @@ export const useLevel1Store = create<Level1State>((set, get) => ({
 
   clearRoundTopics: () => {
     set({ roundUsedTopicIds: [] });
+  },
+
+  /* ── Gameplay counters ───────────────────────────────────── */
+
+  incrementD20Reroll: () => {
+    set((s) => ({ d20RerollCount: s.d20RerollCount + 1 }));
+  },
+
+  incrementForageCount: () => {
+    set((s) => ({ forageCount: s.forageCount + 1 }));
   },
 
   /* ── Win / Lose ─────────────────────────────────────────── */

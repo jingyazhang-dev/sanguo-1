@@ -8,12 +8,14 @@ import type {
 /**
  * Calculate the result of a primary task performed by a follower.
  * V2 formulas: simplified, no gold-spending bonus for recruit.
+ * @param forageCount - number of forage collections already completed this level (for decay)
  */
 export function calculateTaskResult(
   task: PrimaryTaskType,
   follower: Follower,
   _stats: GameStats,
   _round: number,
+  forageCount: number = 0,
 ): PrimaryTaskResult {
   const { intelligence, charisma } = follower.attrs;
 
@@ -36,13 +38,24 @@ export function calculateTaskResult(
         statsDelta: { training: 10 },
       };
 
-    case 'forage':
+    case 'forage': {
+      // Decay formula: 50000 * (1 + (charisma - 10) * 0.1) * 0.7^n, where n = forages done so far
+      const forageRations = Math.floor(50000 * (1 + (charisma - 10) * 0.1) * 0.7 ** forageCount);
+      let forageNarrative: string;
+      if (forageCount === 0) {
+        forageNarrative = `${follower.name}率队深入乡野征收粮秣，车马满载而归，然村中百姓望着空了大半的谷仓，面露难色。`;
+      } else if (forageCount <= 2) {
+        forageNarrative = `${follower.name}再度出征征粮，归来时车辆已不似从前那般满载，沿途村寨的谷仓愈发空瘪，百姓面有怨色，低声咒骂之声渐起。`;
+      } else {
+        forageNarrative = `${follower.name}搜遍周遭乡野，所得粮草寥寥无几。村庄十室九空，幸存的百姓神情冷漠，目送队伍离去时眼中已无一丝指望。`;
+      }
       return {
         followerId: follower.id,
         task,
-        narrative: `${follower.name}率队深入乡野征收粮秣，车马满载而归，然村中百姓望着空了大半的谷仓，面露难色。`,
-        statsDelta: { rations: 2000, support: -5 },
+        narrative: forageNarrative,
+        statsDelta: { rations: forageRations, support: -5 },
       };
+    }
 
     case 'tax':
       return {

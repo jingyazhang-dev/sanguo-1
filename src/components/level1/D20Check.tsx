@@ -26,6 +26,12 @@ interface D20CheckProps {
   attrValue: number;
   modifiers: D20Modifier[];
   onResult: (success: boolean, total: number) => void;
+  /** Cost of the next reroll in gold (computed by parent). Omit to hide reroll. */
+  rerollCost?: number;
+  /** Whether the player can afford the reroll. */
+  canAffordReroll?: boolean;
+  /** Called when player clicks reroll; parent deducts gold & increments count. */
+  onReroll?: () => void;
 }
 
 /* ── Stage type ───────────────────────────────────────────── */
@@ -48,6 +54,9 @@ export function D20Check({
   attrValue,
   modifiers,
   onResult,
+  rerollCost,
+  canAffordReroll,
+  onReroll,
 }: D20CheckProps) {
   /* ---- persistent state ---- */
   const [stage, setStage] = useState<Stage>('data');
@@ -147,6 +156,25 @@ export function D20Check({
       if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
     };
   }, [stage, result]);
+
+  /* ================================================================
+   *  Reroll: reset to 'data' stage after parent deducts gold
+   * ================================================================ */
+  const handleReroll = useCallback(() => {
+    // Clear any pending timers
+    if (flickerRef.current) clearInterval(flickerRef.current);
+    if (modPartTimerRef.current) clearTimeout(modPartTimerRef.current);
+    if (autoAdvanceRef.current) clearTimeout(autoAdvanceRef.current);
+    if (rollSettleRef.current) clearTimeout(rollSettleRef.current);
+    // Parent handles gold deduction and count increment
+    onReroll?.();
+    // Reset local state
+    setStage('data');
+    setResult(null);
+    setDisplayedDice([0]);
+    setFlickering(false);
+    setVisibleParts(0);
+  }, [onReroll]);
 
   /* ================================================================
    *  Render helpers
@@ -319,12 +347,28 @@ export function D20Check({
             {result.success ? '成功' : '失败'}
           </p>
 
-          <button
-            className="mt-2 px-6 py-2 border border-stone-400 rounded hover:bg-stone-100 font-serif text-stone-700"
-            onClick={() => onResult(result.success, result.total)}
-          >
-            继续
-          </button>
+          <div className="flex flex-col items-center gap-2 mt-2">
+            {rerollCost !== undefined && !result.success && (
+              <button
+                className={[
+                  'px-6 py-2 border rounded font-serif text-sm',
+                  canAffordReroll
+                    ? 'border-red-800/60 text-red-800 hover:bg-red-50'
+                    : 'border-stone-300 text-stone-400 cursor-not-allowed',
+                ].join(' ')}
+                onClick={canAffordReroll ? handleReroll : undefined}
+                disabled={!canAffordReroll}
+              >
+                重掷（−{rerollCost}金）
+              </button>
+            )}
+            <button
+              className="px-6 py-2 border border-stone-400 rounded hover:bg-stone-100 font-serif text-stone-700"
+              onClick={() => onResult(result.success, result.total)}
+            >
+              继续
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -44,15 +44,24 @@ export function SettlementPhase() {
   const triggerLose = useLevel1Store((s) => s.triggerLose);
   const attrs = useLevel1Store((s) => s.attrs);
   const advancePhase = useLevel1Store((s) => s.advancePhase);
+  const gold = useLevel1Store((s) => s.stats.territory.gold);
+  const d20RerollCount = useLevel1Store((s) => s.d20RerollCount);
+  const forageCount = useLevel1Store((s) => s.forageCount);
+  const incrementD20Reroll = useLevel1Store((s) => s.incrementD20Reroll);
+  const incrementForageCount = useLevel1Store((s) => s.incrementForageCount);
 
   /* ── One-time computation (ref ensures stable across renders) */
 
   const dataRef = useRef<SettlementData | null>(null);
   if (dataRef.current === null) {
     const reports: PrimaryTaskResult[] = [];
+    // Track local forage offset within this settlement phase for decay
+    let localForageOffset = 0;
     for (const f of followers) {
       if (f.assignedTask) {
-        reports.push(calculateTaskResult(f.assignedTask, f, stats, round));
+        const fc = f.assignedTask === 'forage' ? forageCount + localForageOffset : 0;
+        reports.push(calculateTaskResult(f.assignedTask, f, stats, round, fc));
+        if (f.assignedTask === 'forage') localForageOffset += 1;
       }
     }
 
@@ -109,6 +118,7 @@ export function SettlementPhase() {
       applyStatsDelta(report.statsDelta);
       if (report.attrsDelta) applyAttrsDelta(report.attrsDelta);
       if (report.conditionChanges) updateConditions(report.conditionChanges);
+      if (report.task === 'forage') incrementForageCount();
 
       // Advance to next task report, or end events, or assassin check
       const nextIdx = step.index + 1;
@@ -138,7 +148,7 @@ export function SettlementPhase() {
         transitionAfterEvents();
       }
     }
-  }, [step, taskReports, endEvents, applyStatsDelta, applyAttrsDelta, updateConditions, transitionAfterEvents]);
+  }, [step, taskReports, endEvents, applyStatsDelta, applyAttrsDelta, updateConditions, transitionAfterEvents, incrementForageCount]);
 
   const handleAssassinNarrativeDone = useCallback(() => {
     if (step.kind === 'assassinNarrative') {
@@ -160,6 +170,15 @@ export function SettlementPhase() {
   const handleSurvivedDone = useCallback(() => {
     setStep({ kind: 'done' });
   }, []);
+
+  const rerollCost = (d20RerollCount + 1) ** 2 * 100;
+  const canAffordReroll = gold >= rerollCost;
+  const handleReroll = useCallback(() => {
+    const currentCount = useLevel1Store.getState().d20RerollCount;
+    const cost = (currentCount + 1) ** 2 * 100;
+    applyStatsDelta({ gold: -cost });
+    incrementD20Reroll();
+  }, [applyStatsDelta, incrementD20Reroll]);
 
   /* ── Render ───────────────────────────────────────────────── */
 
@@ -202,6 +221,9 @@ export function SettlementPhase() {
             attrValue={attrs.strength}
             modifiers={conditions.hasBodyguard ? [{ label: '贴身护卫', value: 2 }] : []}
             onResult={handleAssassinD20Result}
+            rerollCost={rerollCost}
+            canAffordReroll={canAffordReroll}
+            onReroll={handleReroll}
           />
         </div>
       </div>

@@ -76,7 +76,8 @@ export function selectDisplayTopics(
     const rest = pool.filter((t) => t.id !== alwaysIncludeId);
     const shuffled = shuffleArray(rest);
     const selected = shuffled.slice(0, count - (always ? 1 : 0));
-    return always ? [always, ...selected] : selected;
+    // Shuffle the always-included topic into a random position
+    return always ? shuffleArray([always, ...selected]) : selected;
   }
 
   return shuffleArray(pool).slice(0, count);

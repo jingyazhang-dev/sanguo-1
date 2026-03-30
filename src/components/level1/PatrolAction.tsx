@@ -33,11 +33,14 @@ export function PatrolAction({ onDone }: PatrolActionProps) {
   const round = useLevel1Store((s) => s.round);
   const followers = useLevel1Store((s) => s.followers);
   const attrs = useLevel1Store((s) => s.attrs);
+  const gold = useLevel1Store((s) => s.stats.territory.gold);
+  const d20RerollCount = useLevel1Store((s) => s.d20RerollCount);
   const seededPatrolEvent = useLevel1Store((s) => s.seededPatrolEvent);
   const setCompanionCooldown = useLevel1Store((s) => s.setCompanionCooldown);
   const seedPatrolEvent = useLevel1Store((s) => s.seedPatrolEvent);
   const applyStatsDelta = useLevel1Store((s) => s.applyStatsDelta);
   const updateConditions = useLevel1Store((s) => s.updateConditions);
+  const incrementD20Reroll = useLevel1Store((s) => s.incrementD20Reroll);
 
   const [step, setStep] = useState<Step>({ kind: 'companion' });
   const [selectedCompanion, setSelectedCompanion] = useState<Follower | null>(null);
@@ -115,6 +118,15 @@ export function PatrolAction({ onDone }: PatrolActionProps) {
     },
     [step, patrolEvent, applyStatsDelta, updateConditions],
   );
+
+  const rerollCost = (d20RerollCount + 1) ** 2 * 100;
+  const canAffordReroll = gold >= rerollCost;
+  const handleReroll = useCallback(() => {
+    const currentCount = useLevel1Store.getState().d20RerollCount;
+    const cost = (currentCount + 1) ** 2 * 100;
+    applyStatsDelta({ gold: -cost });
+    incrementD20Reroll();
+  }, [applyStatsDelta, incrementD20Reroll]);
 
   /* ── Render ─────────────────────────────────────────────── */
 
@@ -245,6 +257,9 @@ export function PatrolAction({ onDone }: PatrolActionProps) {
         attrValue={attrs[d20.attrKey]}
         modifiers={companionMods}
         onResult={handleD20Result}
+        rerollCost={rerollCost}
+        canAffordReroll={canAffordReroll}
+        onReroll={handleReroll}
       />
     );
   }

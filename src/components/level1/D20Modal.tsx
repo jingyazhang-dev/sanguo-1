@@ -13,6 +13,10 @@ interface D20ModalProps {
   attrValue: number;
   modifiers: D20Modifier[];
   onResult: (success: boolean, total: number) => void;
+  /** Reroll props forwarded to D20Check */
+  rerollCost?: number;
+  canAffordReroll?: boolean;
+  onReroll?: () => void;
 }
 
 /**
@@ -27,6 +31,9 @@ export function D20Modal({
   attrValue,
   modifiers,
   onResult,
+  rerollCost,
+  canAffordReroll,
+  onReroll,
 }: D20ModalProps) {
   return (
     <>
@@ -44,6 +51,9 @@ export function D20Modal({
           attrValue={attrValue}
           modifiers={modifiers}
           onResult={onResult}
+          rerollCost={rerollCost}
+          canAffordReroll={canAffordReroll}
+          onReroll={onReroll}
         />
       </div>
     </>

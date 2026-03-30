@@ -49,6 +49,8 @@ export function TalkAction({ onDone, onCancel }: TalkActionProps) {
   const conditions = useLevel1Store((s) => s.conditions);
   const stats = useLevel1Store((s) => s.stats);
   const attrs = useLevel1Store((s) => s.attrs);
+  const gold = useLevel1Store((s) => s.stats.territory.gold);
+  const d20RerollCount = useLevel1Store((s) => s.d20RerollCount);
   const usedTopicIds = useLevel1Store((s) => s.usedTopicIds);
   const roundUsedTopicIds = useLevel1Store((s) => s.roundUsedTopicIds);
   const seededPatrolEvent = useLevel1Store((s) => s.seededPatrolEvent);
@@ -56,6 +58,7 @@ export function TalkAction({ onDone, onCancel }: TalkActionProps) {
   const applyAttrsDelta = useLevel1Store((s) => s.applyAttrsDelta);
   const updateConditions = useLevel1Store((s) => s.updateConditions);
   const markTopicUsed = useLevel1Store((s) => s.markTopicUsed);
+  const incrementD20Reroll = useLevel1Store((s) => s.incrementD20Reroll);
 
   const [step, setStep] = useState<Step>({ kind: 'selectCharacter' });
   const [effectsApplied, setEffectsApplied] = useState(false);
@@ -208,6 +211,15 @@ export function TalkAction({ onDone, onCancel }: TalkActionProps) {
     },
     [step, applyStatsDelta, updateConditions, markTopicUsed],
   );
+
+  const rerollCost = (d20RerollCount + 1) ** 2 * 100;
+  const canAffordReroll = gold >= rerollCost;
+  const handleReroll = useCallback(() => {
+    const currentCount = useLevel1Store.getState().d20RerollCount;
+    const cost = (currentCount + 1) ** 2 * 100;
+    applyStatsDelta({ gold: -cost });
+    incrementD20Reroll();
+  }, [applyStatsDelta, incrementD20Reroll]);
 
   const handleDynamicNarrationDone = useCallback(() => {
     if (step.kind !== 'dynamicNarration') return;
@@ -376,6 +388,9 @@ export function TalkAction({ onDone, onCancel }: TalkActionProps) {
         attrValue={attrs[d20.attrKey]}
         modifiers={d20.modifiers}
         onResult={handleD20Result}
+        rerollCost={rerollCost}
+        canAffordReroll={canAffordReroll}
+        onReroll={handleReroll}
       />
     );
   }

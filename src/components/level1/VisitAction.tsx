@@ -66,6 +66,8 @@ export function VisitAction({ onDone, onCancel }: VisitActionProps) {
   const conditions = useLevel1Store((s) => s.conditions);
   const stats = useLevel1Store((s) => s.stats);
   const attrs = useLevel1Store((s) => s.attrs);
+  const gold = useLevel1Store((s) => s.stats.territory.gold);
+  const d20RerollCount = useLevel1Store((s) => s.d20RerollCount);
   const contacts = useLevel1Store((s) => s.contacts);
   const round = useLevel1Store((s) => s.round);
   const usedTopicIds = useLevel1Store((s) => s.usedTopicIds);
@@ -74,6 +76,7 @@ export function VisitAction({ onDone, onCancel }: VisitActionProps) {
   const updateConditions = useLevel1Store((s) => s.updateConditions);
   const updateContactRelationship = useLevel1Store((s) => s.updateContactRelationship);
   const markTopicUsed = useLevel1Store((s) => s.markTopicUsed);
+  const incrementD20Reroll = useLevel1Store((s) => s.incrementD20Reroll);
 
   // Determine if ANY contacts are unlocked
   const hasUnlockedContacts = conditions.kongRongUnlocked || conditions.miZhuUnlocked || conditions.chenDengUnlocked;
@@ -191,6 +194,15 @@ export function VisitAction({ onDone, onCancel }: VisitActionProps) {
     },
     [step, applyStatsDelta, updateConditions, updateContactRelationship, markTopicUsed],
   );
+
+  const rerollCost = (d20RerollCount + 1) ** 2 * 100;
+  const canAffordReroll = gold >= rerollCost;
+  const handleReroll = useCallback(() => {
+    const currentCount = useLevel1Store.getState().d20RerollCount;
+    const cost = (currentCount + 1) ** 2 * 100;
+    applyStatsDelta({ gold: -cost });
+    incrementD20Reroll();
+  }, [applyStatsDelta, incrementD20Reroll]);
 
   const handleRejectionNarrated = useCallback(() => {
     if (!conditions.triedVisitFailed) {
@@ -310,6 +322,9 @@ export function VisitAction({ onDone, onCancel }: VisitActionProps) {
             attrValue={attrs[d20.attrKey]}
             modifiers={modifiers}
             onResult={handleD20Result}
+            rerollCost={rerollCost}
+            canAffordReroll={canAffordReroll}
+            onReroll={handleReroll}
           />
         </div>
       );
